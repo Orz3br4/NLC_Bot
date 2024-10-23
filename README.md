@@ -1,2 +1,2 @@
-# church-info-integration
-A information integration system for church
+# NLC Bot
+A Line bot to help you do weekly routines better!
