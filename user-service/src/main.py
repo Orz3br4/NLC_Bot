@@ -1,18 +1,25 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from . import models, schemas, utils
-from .database import engine, get_db
-import redis
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# 創建資料表
-models.Base.metadata.create_all(bind=engine)
+# 使用絕對導入
+from app import models, schemas, utils
+from app.core.config import settings
 
 app = FastAPI(title="User Service API")
 
-# Redis 連接
-redis_client = redis.from_url(settings.REDIS_URL)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# CORS 設置
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 開發環境設置，生產環境要改為具體的域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# API 路由
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 @app.post("/register", response_model=schemas.UserInDB)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):

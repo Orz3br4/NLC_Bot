@@ -1,47 +1,42 @@
-version: '3.8'
-
 services:
-  # Nginx 服務
   nginx:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
     depends_on:
       - user-service
-      # - venue-service
-      # - equipment-service
     networks:
       - api_network
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
-  # Certbot 服務
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-
-  # 會員系統
   user-service:
-    build: ./user-service
+    build: 
+      context: .
+      dockerfile: user-service\Dockerfile
+    expose:
+      - "8000"
+    volumes:
+      - ./src:/app/src
     environment:
-      - DB_HOST=user-db
-      - DB_NAME=userdb
-      - DB_USER=user
-      - DB_PASSWORD=userpass
-      - REDIS_HOST=user-cache
+      - PYTHONPATH=/app/src
+      - DATABASE_URL=postgresql://user:userpass@user-db/userdb
+      - REDIS_URL=redis://user-cache:6379/0
+      - SECRET_KEY=dev-secret-key
+      - DEBUG=1
+      - CORS_ORIGINS=["http://localhost", "http://localhost:3000"]
     depends_on:
       - user-db
       - user-cache
     networks:
       - api_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   user-db:
     image: postgres:13-alpine
@@ -49,92 +44,36 @@ services:
       - POSTGRES_DB=userdb
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=userpass
+    ports:
+      - "5432:5432"
     volumes:
-      - user_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - api_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d userdb"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   user-cache:
     image: redis:alpine
+    ports:
+      - "6379:6379"
     volumes:
-      - user_cache:/data
+      - redis_data:/data
     networks:
       - api_network
-
-  # # 場地借用系統
-  # venue-service:
-  #   build: ./venue-service
-  #   environment:
-  #     - DB_HOST=venue-db
-  #     - DB_NAME=venuedb
-  #     - DB_USER=venue
-  #     - DB_PASSWORD=venuepass
-  #     - REDIS_HOST=venue-cache
-  #   depends_on:
-  #     - venue-db
-  #     - venue-cache
-  #   networks:
-  #     - api_network
-
-  # venue-db:
-  #   image: postgres:13-alpine
-  #   environment:
-  #     - POSTGRES_DB=venuedb
-  #     - POSTGRES_USER=venue
-  #     - POSTGRES_PASSWORD=venuepass
-  #   volumes:
-  #     - venue_data:/var/lib/postgresql/data
-  #   networks:
-  #     - api_network
-
-  # venue-cache:
-  #   image: redis:alpine
-  #   volumes:
-  #     - venue_cache:/data
-  #   networks:
-  #     - api_network
-
-  # # 器材借用系統
-  # equipment-service:
-  #   build: ./equipment-service
-  #   environment:
-  #     - DB_HOST=equipment-db
-  #     - DB_NAME=equipmentdb
-  #     - DB_USER=equipment
-  #     - DB_PASSWORD=equipmentpass
-  #     - REDIS_HOST=equipment-cache
-  #   depends_on:
-  #     - equipment-db
-  #     - equipment-cache
-  #   networks:
-  #     - api_network
-
-  # equipment-db:
-  #   image: postgres:13-alpine
-  #   environment:
-  #     - POSTGRES_DB=equipmentdb
-  #     - POSTGRES_USER=equipment
-  #     - POSTGRES_PASSWORD=equipmentpass
-  #   volumes:
-  #     - equipment_data:/var/lib/postgresql/data
-  #   networks:
-  #     - api_network
-
-  # equipment-cache:
-  #   image: redis:alpine
-  #   volumes:
-  #     - equipment_cache:/data
-  #   networks:
-  #     - api_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   api_network:
     driver: bridge
 
 volumes:
-  user_data:
-  user_cache:
-  # venue_data:
-  # venue_cache:
-  # equipment_data:
-  # equipment_cache:
+  postgres_data:
+  redis_data:
