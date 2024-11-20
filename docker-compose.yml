@@ -9,16 +9,13 @@ services:
       - user-service
     networks:
       - api_network
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
   user-service:
     build: 
       context: .
-      dockerfile: user-service\Dockerfile
-    expose:
-      - "8000"
+      dockerfile: user-service/Dockerfile
     volumes:
-      - ./src:/app/src
+      - ./user-service/src:/app/src  # 將本地的 src 目錄掛載到容器中
     environment:
       - PYTHONPATH=/app/src
       - DATABASE_URL=postgresql://user:userpass@user-db/userdb
@@ -26,17 +23,14 @@ services:
       - SECRET_KEY=dev-secret-key
       - DEBUG=1
       - CORS_ORIGINS=["http://localhost", "http://localhost:3000"]
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src  # 指定重載目錄
+    ports:
+      - "8000:8000"  # 為了方便直接訪問 API（可選）
     depends_on:
       - user-db
       - user-cache
     networks:
       - api_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   user-db:
     image: postgres:13-alpine
@@ -50,11 +44,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - api_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d userdb"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
 
   user-cache:
     image: redis:alpine
@@ -64,11 +53,18 @@ services:
       - redis_data:/data
     networks:
       - api_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - user-db
+    networks:
+      - api_network
 
 networks:
   api_network:

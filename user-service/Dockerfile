@@ -2,16 +2,21 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# 安裝依賴
+# 安裝開發所需的套件
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 複製 requirements 文件
 COPY user-service/requirements.txt .
+
+# 安裝 Python 套件
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 設置 Python 路徑
+# 環境變數設置
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
-# 複製源代碼
-COPY user-service/src .
-
-# 執行應用
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# 建立非 root 用戶
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser

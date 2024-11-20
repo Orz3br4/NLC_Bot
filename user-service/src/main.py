@@ -1,11 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from app.database import get_db
 from fastapi.middleware.cors import CORSMiddleware
-
-# 使用絕對導入
 from app import models, schemas, utils
 from app.core.config import settings
+from jose import JWTError, jwt
 
 app = FastAPI(title="User Service API")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # CORS 設置
 app.add_middleware(
