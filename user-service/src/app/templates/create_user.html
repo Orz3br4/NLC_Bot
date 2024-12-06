@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!-- 主要內容區域 -->
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+            <form id="registrationForm" novalidate>
+                <div class="form-group">
+                    <label for="name" class="required">姓名</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        required
+                    >
+                    <div class="error">請輸入真實姓名</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">電子郵件</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                    >
+                    <div class="error">請輸入有效的電子郵件地址</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthday">生日</label>
+                    <input 
+                        type="date" 
+                        id="birthday" 
+                        name="birthday" 
+                    >
+                    <div class="error">請選擇生日日期</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile_number">手機號碼</label>
+                    <input 
+                        type="tel" 
+                        id="mobile_number" 
+                        name="mobile_number" 
+                        pattern="^09\d{8}$"
+                    >
+                    <div class="error">請輸入有效的台灣手機號碼（格式：09xxxxxxxx）</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="level" class="required">靈程</label>
+                    <select id="level" name="level" required>
+                        <option value="" disabled selected>請選擇靈程</option>
+                        <option value="基督徒">基督徒</option>
+                        <option value="慕道友">慕道友</option>
+                        <option value="新朋友">新朋友</option>
+                    </select>
+                    <div class="error">請選擇靈程</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role" class="required">教會職分</label>
+                    <select id="role" name="role" required>
+                        <option value="" disabled selected>請選擇職分</option>
+                        <option value="會友">會友</option>
+                        <option value="小家長">小家長</option>
+                        <option value="小組長">小組長</option>
+                        <option value="區長">區長</option>
+                        <option value="分堂領袖">分堂領袖</option>
+                        <option value="牧師">牧師</option>
+                        <option value="傳道">傳道</option>
+                    </select>
+                    <div class="error">請選擇教會職分</div>
+                </div>
+
+                <button type="submit">新增</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // 定義枚舉值
+        const UserLevel = {
+            CHRISTIAN: "基督徒",
+            VIP: "慕道友",
+            NEW_FRIEND: "新朋友"
+        };
+
+        const UserRole = {
+            MEMBER: "會友",
+            EKK_LEADER: "小家長",
+            GROUP_LEADER: "小組長",
+            DISTRICT_LEADER: "區長",
+            BRANCH_LEADER: "分堂領袖",
+            PASTOR: "牧師",
+            MINISTER: "傳道"
+        };
+
+        const form = document.getElementById('registrationForm');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const userData = Object.fromEntries(formData.entries());
+
+            try {
+                // 這裡替換成實際的 API 端點
+                const response = await fetch('/users/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    alert('註冊成功！');
+                    form.reset();
+                } else {
+                    const error = await response.json();
+                    alert(`註冊失敗：${error.message}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('註冊時發生錯誤，請稍後再試。');
+            }
+        });
+
+        // 即時驗證
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+    </script>
+{% endblock %}

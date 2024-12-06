@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+            <form id="categoryForm" novalidate>
+                <div class="form-group">
+                    <label for="category_name" class="required">類別名稱</label>
+                    <input 
+                        type="text" 
+                        id="category_name" 
+                        name="category_name" 
+                        required
+                    >
+                    <div class="error">請輸入組織類別名稱</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">類別說明</label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        rows="4"
+                    ></textarea>
+                    <div class="error">請輸入類別說明</div>
+                </div>
+
+                <button type="submit">新增</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById('categoryForm');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const categoryData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/organization-category/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(categoryData)
+                });
+
+                if (response.ok) {
+                    alert('組織類別建立成功！');
+                    form.reset();
+                    // 可以選擇重定向到列表頁面
+                    // window.location.href = '/organization-categories/';
+                } else {
+                    const error = await response.json();
+                    alert(`建立失敗：${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('建立時發生錯誤，請稍後再試。');
+            }
+        });
+
+        // 即時驗證
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+    </script>
+{% endblock %}
