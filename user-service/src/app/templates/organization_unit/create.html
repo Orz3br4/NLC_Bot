@@ -58,7 +58,7 @@
                 const categories = await response.json();
                 
                 categorySelect.innerHTML = '<option value="" disabled selected>請選擇類別</option>';
-                categories.forEach(category => {
+                categories.items.forEach(category => {
                     const option = document.createElement('option');
                     option.value = category.id;
                     option.textContent = category.category_name;
@@ -72,12 +72,11 @@
         // 載入上層單位選項
         async function loadParentUnits(categoryId) {
             try {
-                const response = await fetch('/organization-units/');
+                const response = await fetch(`/organization-units/parent/by-category/${categoryId}`);
                 const units = await response.json();
                 
                 parentUnitSelect.innerHTML = '<option value="" disabled selected>請選擇上層單位</option>';
-                const filteredUnits = units.filter(unit => unit.category_id == categoryId);
-                filteredUnits.forEach(unit => {
+                units.forEach(unit => {
                     const option = document.createElement('option');
                     option.value = unit.id;
                     option.textContent = unit.unit_name;
@@ -88,13 +87,13 @@
             }
         }
 
-        // 載入負責人選項
+        // 載入領袖選項
         async function loadLeaders() {
             try {
                 const response = await fetch('/users/');
                 const users = await response.json();
                 
-                leaderSelect.innerHTML = '<option value="" disabled selected>請選擇負責人</option>';
+                leaderSelect.innerHTML = '<option value="" disabled selected>請選擇領袖</option>';
                 users.forEach(user => {
                     const option = document.createElement('option');
                     option.value = user.id;
@@ -109,6 +108,7 @@
         // 當類別改變時載入對應的上層單位
         categorySelect.addEventListener('change', () => {
             if (categorySelect.value) {
+                console.log('=====categorySelect.addEventListener', categorySelect.value);
                 loadParentUnits(categorySelect.value);
             }
         });
@@ -131,7 +131,7 @@
             const unitData = Object.fromEntries(formData.entries());
 
             try {
-                const response = await fetch('/organization-units/create', {
+                const response = await fetch('/organization-unit/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

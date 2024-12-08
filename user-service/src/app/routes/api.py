@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory="src/app/templates")
 @router.get("/user/create")
 async def get_user_create_form(request: Request):
     return templates.TemplateResponse(
-        "create_user.html",
+        "user/create.html",
         {
             "request": request, 
             "title": "新增使用者"
@@ -72,7 +72,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 @router.get("/organization-category/create")
 async def get_create_organization_category_form(request: Request):
     return templates.TemplateResponse(
-        "create_organization_category.html",
+        "organization_category/create.html",
         {
             "request": request,
             "title": "新增組織類別"
@@ -116,7 +116,7 @@ async def read_organization_categories(
 @router.get("/organization-unit/create")
 async def get_create_organization_category_form(request: Request):
     return templates.TemplateResponse(
-        "create_organization_category.html",
+        "organization_unit/create.html",
         {
             "request": request,
             "title": "新增組織單位"
@@ -146,6 +146,23 @@ def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Organization unit not found")
     return db_unit
 
+@router.get("/organization-units/update")
+async def get_organization_unit_update_form(request: Request):
+    # TODO: Create a page to update organization unit information and return this page
+    return templates.TemplateResponse(
+        "user/create.html",
+        {
+            "request": request,
+            "title": "更新組織單位資料"
+        }
+    )
+
+@router.post("/organization-units/{unit_id}/update", response_model=schemas.OrganizationUnitUpdate)
+def update_organization_unit(unit_id: int, db: Session = Depends(get_db)):
+    # TODO: Create a page to update organization unit information and return this page
+    
+    return True
+
 @router.get("/organization-units/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
 async def read_organization_units_by_category(
     category_id: int,
@@ -160,10 +177,26 @@ async def read_organization_units_by_category(
         .all()
     return units
 
+@router.get("/organization-units/parent/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
+async def read_parent_organization_units_by_category(
+    category_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    parent_category_id = category_id - 1
+    units = db.query(models.Organization_units)\
+        .filter(models.Organization_units.category_id == parent_category_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return units
+
 @router.get("/organization-units/hierarchy", response_model=List[dict])
 async def get_organization_hierarchy(
     db: Session = Depends(get_db)
 ):
+    # TODO: Confirm this api works properly
     def build_hierarchy(parent_id: Optional[int] = None):
         units = db.query(models.Organization_units)\
             .filter(models.Organization_units.parent_unit_id == parent_id)\
@@ -188,6 +221,7 @@ def create_user_organization_unit(
     user_unit: schemas.UserOrganizationUnitCreate, 
     db: Session = Depends(get_db)
 ):
+    # TODO: Confirm this api works properly
     db_user_unit = models.User_organization_units(**user_unit.model_dump())
     db.add(db_user_unit)
     db.commit()
@@ -196,6 +230,7 @@ def create_user_organization_unit(
 
 @router.get("/user-organization-units/by-user/{user_id}", response_model=List[schemas.UserOrganizationUnitInDB])
 def read_user_organization_units(user_id: int, db: Session = Depends(get_db)):
+    # TODO: Confirm this api works properly
     user_units = db.query(models.User_organization_units).filter(
         models.User_organization_units.user_id == user_id
     ).all()
@@ -206,6 +241,7 @@ async def get_user_organization_units(
     user_id: int,
     db: Session = Depends(get_db)
 ):
+    # TODO: Confirm this api works properly
     units = db.query(models.Organization_units)\
         .join(models.User_organization_units)\
         .filter(models.User_organization_units.user_id == user_id)\

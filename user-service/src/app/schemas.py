@@ -95,6 +95,9 @@ class OrganizationUnitInDB(OrganizationUnitBase):
 
     class Config:
         from_attributes = True
+        json_encoders={
+            datetime: lambda dt: dt.isoformat() if dt else None
+        }
 
 # User Organization Unit schemas
 class UserOrganizationUnitBase(BaseModel):

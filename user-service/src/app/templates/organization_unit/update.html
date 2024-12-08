@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">更新組織單位</h1>
+
+            <form id="updateForm" novalidate>
+                <div class="form-group">
+                    <label>選擇要更新的組織單位</label>
+                    <div class="search-select-container">
+                        <input type="text" id="orgSearch" class="search-input" placeholder="搜尋組織單位...">
+                        <div id="orgDropdown" class="select-dropdown"></div>
+                    </div>
+                    <div class="error">請選擇要更新的組織單位</div>
+                </div>
+
+                <div class="form-group">
+                    <label>單位名稱</label>
+                    <input type="text" id="orgName" name="name" required>
+                    <div class="error">請輸入組織單位名稱</div>
+                </div>
+
+                <div class="form-group">
+                    <label>組織類別</label>
+                    <select id="orgType" name="type" required>
+                        <option value="">請選擇類別</option>
+                        <option value="church">教會</option>
+                        <option value="branch">分堂</option>
+                        <option value="district">小區</option>
+                        <option value="group">小組</option>
+                        <option value="family">小家</option>
+                    </select>
+                    <div class="error">請選擇組織類別</div>
+                </div>
+
+                <div class="form-group">
+                    <label>上層單位</label>
+                    <div class="search-select-container">
+                        <input type="text" id="parentSearch" class="search-input" placeholder="搜尋上層單位...">
+                        <div id="parentDropdown" class="select-dropdown"></div>
+                    </div>
+                    <div class="error">請選擇上層單位</div>
+                </div>
+
+                <div class="form-group">
+                    <label>領袖</label>
+                    <div class="search-select-container">
+                        <input type="text" id="leaderSearch" class="search-input" placeholder="搜尋領袖...">
+                        <div id="leaderDropdown" class="select-dropdown"></div>
+                    </div>
+                    <div class="error">請選擇領袖</div>
+                </div>
+
+                <button type="submit">更新</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // 模擬的組織單位數據
+        const organizations = await fetch('/organization-units/');
+
+        // 模擬的領袖數據
+        const leaders = [
+            { id: 1, name: '王大牧' },
+            { id: 2, name: '李傳道' },
+            { id: 3, name: '張小組長' }
+        ];
+
+        // 初始化搜尋下拉選單
+        function initializeSearchSelect(inputId, dropdownId, data, displayKey, onSelect) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+
+            input.addEventListener('input', () => {
+                const searchText = input.value.toLowerCase();
+                const filtered = data.filter(item => 
+                    item[displayKey].toLowerCase().includes(searchText)
+                );
+
+                dropdown.innerHTML = filtered.map(item => `
+                    <div class="select-option" data-id="${item.id}">
+                        ${item[displayKey]}
+                    </div>
+                `).join('');
+
+                dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const option = e.target.closest('.select-option');
+                if (option) {
+                    const id = option.dataset.id;
+                    const selected = data.find(item => item.id.toString() === id);
+                    input.value = selected[displayKey];
+                    dropdown.style.display = 'none';
+                    if (onSelect) onSelect(selected);
+                }
+            });
+
+            // 點擊外部時關閉下拉選單
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // 初始化表單
+        document.addEventListener('DOMContentLoaded', () => {
+            let selectedOrg = null;
+
+            // 初始化組織單位搜尋
+            initializeSearchSelect('orgSearch', 'orgDropdown', organizations, 'name', (org) => {
+                selectedOrg = org;
+                document.getElementById('orgName').value = org.name;
+                document.getElementById('orgType').value = org.type;
+                // 這裡可以加載其他相關資料
+            });
+
+            // 初始化上層單位搜尋
+            initializeSearchSelect('parentSearch', 'parentDropdown', organizations, 'name');
+
+            // 初始化領袖搜尋
+            initializeSearchSelect('leaderSearch', 'leaderDropdown', leaders, 'name');
+
+            // 表單提交處理
+            const form = document.getElementById('updateForm');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!selectedOrg) {
+                    alert('請先選擇要更新的組織單位');
+                    return;
+                }
+
+                const formData = {
+                    id: selectedOrg.id,
+                    name: document.getElementById('orgName').value,
+                    type: document.getElementById('orgType').value,
+                    // 收集其他表單數據
+                };
+
+                try {
+                    // 這裡替換成實際的 API 呼叫
+                    const response = await fetch(`/api/organizations/${selectedOrg.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert('更新成功！');
+                        form.reset();
+                    } else {
+                        const error = await response.json();
+                        alert(`更新失敗：${error.message}`);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('更新時發生錯誤，請稍後再試。');
+                }
+            });
+        });
+    </script>
+{% endblock %}
