@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from .. import schemas, models
 from ..database import get_db
@@ -35,6 +36,12 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/users/", response_model=List[schemas.UserInDB])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = db.query(models.User).offset(skip).limit(limit).all()
+    return users
+
+@router.get("/users/by-role/{role_id}", response_model=List[schemas.UserInDB])
+def read_users_by_role(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    # TODO: Read users by role
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
@@ -139,6 +146,18 @@ def read_organization_units(skip: int = 0, limit: int = 100, db: Session = Depen
     units = db.query(models.Organization_units).offset(skip).limit(limit).all()
     return units
 
+# This API must be placed here, or it will never be accessible
+@router.get("/organization-units/update")
+async def get_organization_unit_update_form(request: Request):
+    # TODO: Create a page to update organization unit information and return this page
+    return templates.TemplateResponse(
+        "organization_unit/update.html",
+        {
+            "request": request,
+            "title": "更新組織單位資料"
+        }
+    )
+
 @router.get("/organization-units/{unit_id}", response_model=schemas.OrganizationUnitInDB)
 def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
     db_unit = db.query(models.Organization_units).filter(models.Organization_units.id == unit_id).first()
@@ -146,22 +165,27 @@ def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Organization unit not found")
     return db_unit
 
-@router.get("/organization-units/update")
-async def get_organization_unit_update_form(request: Request):
-    # TODO: Create a page to update organization unit information and return this page
-    return templates.TemplateResponse(
-        "user/create.html",
-        {
-            "request": request,
-            "title": "更新組織單位資料"
-        }
-    )
-
 @router.post("/organization-units/{unit_id}/update", response_model=schemas.OrganizationUnitUpdate)
-def update_organization_unit(unit_id: int, db: Session = Depends(get_db)):
-    # TODO: Create a page to update organization unit information and return this page
-    
-    return True
+def update_organization_unit(
+    unit_id: int,
+    unit: schemas.OrganizationUnitUpdate,
+    db: Session = Depends(get_db)
+):
+    # Confirm if organization unit exists
+    db_unit = db.query(models.Organization_units).filter(models.Organization_units.id == unit_id).first()
+    if not db_unit:
+        raise HTTPException(status_code=404, detail="Organization unit not found")
+
+    # 更新資料
+    for key, value in unit.dict(exclude_unset=True).items():
+        setattr(db_unit, key, value)
+
+    try:
+        db.commit()
+        return db_unit
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/organization-units/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
 async def read_organization_units_by_category(
