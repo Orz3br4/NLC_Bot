@@ -51,18 +51,6 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
-@router.get("/users/by-role/{role_id}", response_model=List[schemas.UserInDB])
-def read_users_by_role(role_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    # TODO: Read users by role
-    roleMap = {
-        1: "分堂領袖",
-        2: "區長",
-        3: "小組長",
-        4: "小家長"
-    }
-    users = db.query(models.User).filter(models.User.role == roleMap[i] for i in range(1, role_id+1)).offset(skip).limit(limit).all()
-    return users
-
 @router.get("/user/{user_id}", response_model=schemas.UserInDB)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -167,7 +155,6 @@ def read_organization_units(skip: int = 0, limit: int = 100, db: Session = Depen
 # This API must be placed here, or it will never be accessible
 @router.get("/organization-units/update")
 async def get_organization_unit_update_form(request: Request):
-    # TODO: Page to update organization unit information and return this page
     return templates.TemplateResponse(
         "organization_unit/update.html",
         {
@@ -175,6 +162,28 @@ async def get_organization_unit_update_form(request: Request):
             "title": "更新組織單位資料"
         }
     )
+
+@router.get("/organization-units/hierarchy", response_model=List[dict])
+async def get_organization_hierarchy(
+    db: Session = Depends(get_db)
+):
+    def build_hierarchy(parent_id: Optional[int] = None):
+        units = db.query(models.Organization_units)\
+            .filter(models.Organization_units.parent_unit_id == parent_id)\
+            .all()
+        
+        return [
+            {
+                "id": unit.id,
+                "name": unit.unit_name,
+                "category_id": unit.category_id,
+                "leader_id": unit.leader_id,
+                "children": build_hierarchy(unit.id)
+            }
+            for unit in units
+        ]
+    
+    return build_hierarchy()
 
 @router.get("/organization-units/{unit_id}", response_model=schemas.OrganizationUnitInDB)
 def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
@@ -233,29 +242,6 @@ async def read_parent_organization_units_by_category(
         .limit(limit)\
         .all()
     return units
-
-@router.get("/organization-units/hierarchy", response_model=List[dict])
-async def get_organization_hierarchy(
-    db: Session = Depends(get_db)
-):
-    # TODO: /organization-units/hierarchy Confirm this api works properly
-    def build_hierarchy(parent_id: Optional[int] = None):
-        units = db.query(models.Organization_units)\
-            .filter(models.Organization_units.parent_unit_id == parent_id)\
-            .all()
-        
-        return [
-            {
-                "id": unit.id,
-                "name": unit.unit_name,
-                "category_id": unit.category_id,
-                "leader_id": unit.leader_id,
-                "children": build_hierarchy(unit.id)
-            }
-            for unit in units
-        ]
-    
-    return build_hierarchy()
 
 # User Organization Unit routes
 @router.post("/user-organization-units/", response_model=schemas.UserOrganizationUnitInDB)
