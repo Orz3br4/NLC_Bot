@@ -69,8 +69,7 @@
 
     async function fetchLeaders() {
         try {
-            // TODO: Update this function to use correct API to get leader list
-            const response = await fetch('/users/by-role/leader');
+            const response = await fetch('/users/');
             if (!response.ok) throw new Error('Failed to fetch leaders');
             return await response.json();
         } catch (error) {
@@ -103,6 +102,14 @@
         const dropdown = document.getElementById(dropdownId);
         let selectedItem = null;
 
+        // 添加一個方法來設置選中的值
+        const setSelected = (item) => {
+            selectedItem = item;
+            if (item) {
+                input.value = item[displayKey];
+            }
+        };
+
         input.addEventListener('input', () => {
             const searchText = input.value.toLowerCase();
             const filtered = data.filter(item => 
@@ -118,19 +125,17 @@
             dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
         });
 
-        // 點擊下單選單內的選項以選擇選項
         dropdown.addEventListener('click', (e) => {
             const option = e.target.closest('.select-option');
             if (option) {
                 const id = option.dataset.id;
-                selectedItem = data.find(item => item[valueKey].toString() === id);
-                input.value = selectedItem[displayKey];
+                const selected = data.find(item => item[valueKey].toString() === id);
+                setSelected(selected);
                 dropdown.style.display = 'none';
-                if (onSelect) onSelect(selectedItem);
+                if (onSelect) onSelect(selected);
             }
         });
 
-        // 點擊下拉選單外面收起選單
         document.addEventListener('click', (e) => {
             if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
                 dropdown.style.display = 'none';
@@ -138,11 +143,16 @@
         });
 
         return {
-            getSelected: () => selectedItem
+            getSelected: () => selectedItem,
+            setSelected: setSelected,  // 新增 setSelected 方法
+            clearSelected: () => {
+                selectedItem = null;
+                input.value = '';
+            }
         };
     }
 
-    // 初始化表單
+    // 修改組織單位選擇的回調函數
     document.addEventListener('DOMContentLoaded', async () => {
         let organizationUnits = [];
         let leaders = [];
@@ -150,12 +160,10 @@
         let orgSelector, parentSelector, leaderSelector;
 
         try {
-            // 載入初始數據
             organizationUnits = await fetchOrganizationUnits();
             leaders = await fetchLeaders();
             loadCategories();
 
-            // 初始化選擇器
             orgSelector = initializeSearchSelect(
                 'org_search', 
                 'org_dropdown', 
@@ -167,16 +175,20 @@
                     document.getElementById('unit_name').value = org.unit_name;
                     document.getElementById('organization_category').value = org.category_id;
                     
-                    // 設置上層單位
+                    // 使用新的 setSelected 方法設置上層單位
                     const parentUnit = organizationUnits.find(unit => unit.id === org.parent_unit_id);
                     if (parentUnit) {
-                        document.getElementById('parent_search').value = parentUnit.unit_name;
+                        parentSelector.setSelected(parentUnit);
+                    } else {
+                        parentSelector.clearSelected();
                     }
 
-                    // 設置領袖
+                    // 使用新的 setSelected 方法設置領袖
                     const leader = leaders.find(user => user.id === org.leader_id);
                     if (leader) {
-                        document.getElementById('leader_search').value = leader.name;
+                        leaderSelector.setSelected(leader);
+                    } else {
+                        leaderSelector.clearSelected();
                     }
                 }
             );
@@ -224,7 +236,7 @@
 
             try {
                 const response = await fetch(`/organization-units/${selectedOrg.id}/update`, {
-                    method: 'POST',
+                    method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                     },

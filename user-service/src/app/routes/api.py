@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
@@ -25,14 +26,25 @@ async def get_user_create_form(request: Request):
 
 @router.post("/user/create", response_model=schemas.UserInDB)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    db_user = models.User(**user.model_dump())
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    try:
+        if user.email:
+            db_user = db.query(models.User).filter(models.User.email == user.email).first()
+            if db_user:
+                raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # 將用戶數據轉換為字典，並移除所有 None 值
+        user_data = user.model_dump(exclude_none=True)
+        
+        # 創建新用戶
+        db_user = models.User(**user_data)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/users/", response_model=List[schemas.UserInDB])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -40,9 +52,15 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return users
 
 @router.get("/users/by-role/{role_id}", response_model=List[schemas.UserInDB])
-def read_users_by_role(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_users_by_role(role_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     # TODO: Read users by role
-    users = db.query(models.User).offset(skip).limit(limit).all()
+    roleMap = {
+        1: "分堂領袖",
+        2: "區長",
+        3: "小組長",
+        4: "小家長"
+    }
+    users = db.query(models.User).filter(models.User.role == roleMap[i] for i in range(1, role_id+1)).offset(skip).limit(limit).all()
     return users
 
 @router.get("/user/{user_id}", response_model=schemas.UserInDB)
@@ -149,7 +167,7 @@ def read_organization_units(skip: int = 0, limit: int = 100, db: Session = Depen
 # This API must be placed here, or it will never be accessible
 @router.get("/organization-units/update")
 async def get_organization_unit_update_form(request: Request):
-    # TODO: Create a page to update organization unit information and return this page
+    # TODO: Page to update organization unit information and return this page
     return templates.TemplateResponse(
         "organization_unit/update.html",
         {
@@ -165,7 +183,7 @@ def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Organization unit not found")
     return db_unit
 
-@router.post("/organization-units/{unit_id}/update", response_model=schemas.OrganizationUnitUpdate)
+@router.put("/organization-units/{unit_id}/update", response_model=schemas.OrganizationUnitUpdate)
 def update_organization_unit(
     unit_id: int,
     unit: schemas.OrganizationUnitUpdate,
@@ -220,7 +238,7 @@ async def read_parent_organization_units_by_category(
 async def get_organization_hierarchy(
     db: Session = Depends(get_db)
 ):
-    # TODO: Confirm this api works properly
+    # TODO: /organization-units/hierarchy Confirm this api works properly
     def build_hierarchy(parent_id: Optional[int] = None):
         units = db.query(models.Organization_units)\
             .filter(models.Organization_units.parent_unit_id == parent_id)\
@@ -245,7 +263,7 @@ def create_user_organization_unit(
     user_unit: schemas.UserOrganizationUnitCreate, 
     db: Session = Depends(get_db)
 ):
-    # TODO: Confirm this api works properly
+    # TODO: /user-organization-units/ Confirm this api works properly
     db_user_unit = models.User_organization_units(**user_unit.model_dump())
     db.add(db_user_unit)
     db.commit()
@@ -254,7 +272,7 @@ def create_user_organization_unit(
 
 @router.get("/user-organization-units/by-user/{user_id}", response_model=List[schemas.UserOrganizationUnitInDB])
 def read_user_organization_units(user_id: int, db: Session = Depends(get_db)):
-    # TODO: Confirm this api works properly
+    # TODO: /user-organization-units/by-user/{user_id} Confirm this api works properly
     user_units = db.query(models.User_organization_units).filter(
         models.User_organization_units.user_id == user_id
     ).all()
@@ -265,7 +283,7 @@ async def get_user_organization_units(
     user_id: int,
     db: Session = Depends(get_db)
 ):
-    # TODO: Confirm this api works properly
+    # TODO: /users/{user_id}/organization-units Confirm this api works properly
     units = db.query(models.Organization_units)\
         .join(models.User_organization_units)\
         .filter(models.User_organization_units.user_id == user_id)\

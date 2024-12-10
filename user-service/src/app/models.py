@@ -6,12 +6,12 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    birthday = Column(Date)
-    email = Column(String, unique=True, index=True)
-    mobile_number = Column(String)
-    level = Column(String)
-    role = Column(String)
+    name = Column(String, nullable=False)
+    birthday = Column(Date, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=True)
+    mobile_number = Column(String, nullable=True)
+    level = Column(String, nullable=False)
+    role = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

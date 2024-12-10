@@ -29,9 +29,12 @@ class UserRole(str, Enum):
 
 class UserBase(BaseModel):
     name: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
-    birthday: date
-    mobile_number: str = Field(..., pattern=r'^09\d{8}$')
+    email: Optional[EmailStr] = None
+    birthday: Optional[date] = None
+    mobile_number: Optional[str] = Field(
+        None,
+        pattern=r'^09\d{8}$'
+    )
     level: UserLevel
     role: UserRole
 
@@ -39,7 +42,7 @@ class UserCreate(UserBase):
     pass
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=3, max_length=50)
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
     email: Optional[EmailStr] = None
     birthday: Optional[date] = None
     mobile_number: Optional[str] = Field(None, pattern=r'^09\d{8}$')

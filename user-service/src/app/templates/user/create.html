@@ -108,11 +108,17 @@
             }
 
             const formData = new FormData(form);
-            const userData = Object.fromEntries(formData.entries());
+            const userData = {};
 
             try {
-                // 這裡替換成實際的 API 端點
-                const response = await fetch('/users/create', {
+                // Clean up empty string to avoid backend validation issue
+                for (let [key, value] of formData.entries()) {
+                    if (value !== '') {
+                        userData[key] = value
+                    }
+                }
+
+                const response = await fetch('/user/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -120,12 +126,18 @@
                     body: JSON.stringify(userData)
                 });
 
+                const data = await response.json();
+
                 if (response.ok) {
                     alert('註冊成功！');
                     form.reset();
                 } else {
-                    const error = await response.json();
-                    alert(`註冊失敗：${error.message}`);
+                    if (response.status === 422) {
+                        console.log('驗證錯誤：', data.detail);
+                        alert(`註冊失敗：${JSON.stringify(data.detail)}`);
+                    } else {
+                        alert(`註冊失敗：${data.detail || '未知錯誤'}`);
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
