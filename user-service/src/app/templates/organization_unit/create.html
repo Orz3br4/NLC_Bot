@@ -72,7 +72,7 @@
         // 載入上層單位選項
         async function loadParentUnits(categoryId) {
             try {
-                const response = await fetch(`/organization-units/parent/by-category/${categoryId}`);
+                const response = await fetch(`/organization-units/by-parent-category/${categoryId}`);
                 const units = await response.json();
                 
                 parentUnitSelect.innerHTML = '<option value="" disabled selected>請選擇上層單位</option>';
@@ -108,7 +108,6 @@
         // 當類別改變時載入對應的上層單位
         categorySelect.addEventListener('change', () => {
             if (categorySelect.value) {
-                console.log('=====categorySelect.addEventListener', categorySelect.value);
                 loadParentUnits(categorySelect.value);
             }
         });

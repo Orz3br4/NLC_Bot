@@ -135,7 +135,8 @@
             if (branchId) {
                 organizationSelects.district.disabled = false;
                 try {
-                    const response = await fetch(`/api/districts/${branchId}`);
+                    console.log('=====branchId', branchId);
+                    const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
                     const districts = await response.json();
                     populateSelect(organizationSelects.district, districts);
                 } catch (error) {
@@ -153,7 +154,7 @@
             if (districtId) {
                 organizationSelects.group.disabled = false;
                 try {
-                    const response = await fetch(`/api/groups/${districtId}`);
+                    const response = await fetch(`/organization-units/by-parent-unit/${districtId}`);
                     const groups = await response.json();
                     populateSelect(organizationSelects.group, groups);
                 } catch (error) {
@@ -169,7 +170,7 @@
             if (groupId) {
                 organizationSelects.ekk.disabled = false;
                 try {
-                    const response = await fetch(`/api/ekks/${groupId}`);
+                    const response = await fetch(`/organization-units/by-parent-unit/${groupId}`);
                     const ekks = await response.json();
                     populateSelect(organizationSelects.ekk, ekks);
                 } catch (error) {
@@ -192,10 +193,11 @@
             const formData = new FormData(form);
             const userData = {};
             const organizationData = {
-                unit_id: null,  // 將根據選擇的最後一個組織單位設置
-                role: formData.get('role')
+                user_id: null,
+                unit_id: null  // 將根據選擇的最後一個組織單位設置
             };
 
+            // TODO: Fix add user issue
             try {
                 // 清理表單數據
                 for (let [key, value] of formData.entries()) {
@@ -231,8 +233,8 @@
                 if (userResponse.ok && organizationData.unit_id) {
                     // 如果用戶創建成功且有選擇組織，則建立用戶-組織關聯
                     organizationData.user_id = userData.id;
-                    
-                    const orgResponse = await fetch('/user-organization-units/', {
+                    console.log('====organizationData', organizationData);
+                    const orgResponse = await fetch('test/user-organization-units/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

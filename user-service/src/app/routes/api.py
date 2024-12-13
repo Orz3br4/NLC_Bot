@@ -213,6 +213,15 @@ def update_organization_unit(
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/organization-units/by-parent-unit/{parent_unit_id}", response_model=List[schemas.OrganizationUnitInDB])
+def read_units_by_parent_unit(parent_unit_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    units = db.query(models.Organization_units)\
+        .filter(models.Organization_units.parent_unit_id == parent_unit_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return units
 
 @router.get("/organization-units/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
 async def read_organization_units_by_category(
@@ -228,7 +237,7 @@ async def read_organization_units_by_category(
         .all()
     return units
 
-@router.get("/organization-units/parent/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
+@router.get("/organization-units/by-parent-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
 async def read_parent_organization_units_by_category(
     category_id: int,
     skip: int = 0,
