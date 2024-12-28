@@ -45,6 +45,48 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# 修改現有的更新用戶表單路由
+@router.get("/user/update")
+async def get_user_update_form(request: Request):
+    return templates.TemplateResponse(
+        "user/update.html",  # 這裡假設模板放在 templates/user/update.html
+        {
+            "request": request,
+            "title": "更新使用者資料"
+        }
+    )
+
+@router.put("/user/{user_id}", response_model=schemas.UserInDB)
+def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
+    try:
+        # 檢查用戶是否存在
+        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # 如果提供了 email 且與當前不同，檢查是否已被使用
+        if user.email and user.email != db_user.email:
+            existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # 更新用戶資料
+        update_data = user.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_user, key, value)
+        
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/users/", response_model=List[schemas.UserInDB])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -258,7 +300,6 @@ def create_user_organization_unit(
     user_unit: schemas.UserOrganizationUnitCreate, 
     db: Session = Depends(get_db)
 ):
-    # TODO: /user-organization-units/ Confirm this api works properly
     db_user_unit = models.User_organization_units(**user_unit.model_dump())
     db.add(db_user_unit)
     db.commit()
@@ -267,7 +308,6 @@ def create_user_organization_unit(
 
 @router.get("/user-organization-units/by-user/{user_id}", response_model=List[schemas.UserOrganizationUnitInDB])
 def read_user_organization_units(user_id: int, db: Session = Depends(get_db)):
-    # TODO: /user-organization-units/by-user/{user_id} Confirm this api works properly
     user_units = db.query(models.User_organization_units).filter(
         models.User_organization_units.user_id == user_id
     ).all()
@@ -278,9 +318,8 @@ async def get_user_organization_units(
     user_id: int,
     db: Session = Depends(get_db)
 ):
-    # TODO: /users/{user_id}/organization-units Confirm this api works properly
     units = db.query(models.Organization_units)\
-        .join(models.User_organization_units)\
+        .select_from(models.User_organization_units)\
         .filter(models.User_organization_units.user_id == user_id)\
         .all()
     return units

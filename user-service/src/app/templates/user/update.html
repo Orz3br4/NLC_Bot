@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+
+            <!-- 用戶搜索區域 -->
+            <div class="form-group">
+                <label>選擇要更新的使用者</label>
+                <div class="search-select-container">
+                    <input type="text" id="user_search" class="search-input" placeholder="搜尋使用者...">
+                    <div id="user_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇要更新的使用者</div>
+            </div>
+
+            <form id="updateForm" novalidate>
+                <div class="form-group">
+                    <label for="name" class="required">姓名</label>
+                    <input type="text" id="name" name="name" required>
+                    <div class="error">請輸入真實姓名</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" name="email">
+                    <div class="error">請輸入有效的電子郵件地址</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthday">生日</label>
+                    <input type="date" id="birthday" name="birthday">
+                    <div class="error">請選擇生日日期</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile_number">手機號碼</label>
+                    <input type="tel" id="mobile_number" name="mobile_number" pattern="^09\d{8}$">
+                    <div class="error">請輸入有效的台灣手機號碼（格式：09xxxxxxxx）</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="level" class="required">靈程</label>
+                    <select id="level" name="level" required>
+                        <option value="" disabled selected>請選擇靈程</option>
+                        <option value="基督徒">基督徒</option>
+                        <option value="慕道友">慕道友</option>
+                        <option value="新朋友">新朋友</option>
+                    </select>
+                    <div class="error">請選擇靈程</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role" class="required">教會職分</label>
+                    <select id="role" name="role" required>
+                        <option value="" disabled selected>請選擇職分</option>
+                        <option value="會友">會友</option>
+                        <option value="小家長">小家長</option>
+                        <option value="小組長">小組長</option>
+                        <option value="區長">區長</option>
+                        <option value="分堂領袖">分堂領袖</option>
+                        <option value="牧師">牧師</option>
+                        <option value="傳道">傳道</option>
+                    </select>
+                    <div class="error">請選擇教會職分</div>
+                </div>
+
+                <button type="submit">更新</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        let selectedUser = null;
+
+        // 初始化搜尋下拉選單
+        function initializeSearchSelect(inputId, dropdownId, data, displayKey, valueKey, onSelect) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+
+            input.addEventListener('input', () => {
+                const searchText = input.value.toLowerCase();
+                const filtered = data.filter(item => 
+                    item[displayKey].toLowerCase().includes(searchText)
+                );
+
+                dropdown.innerHTML = filtered.map(item => `
+                    <div class="select-option" data-id="${item[valueKey]}">
+                        ${item[displayKey]}
+                    </div>
+                `).join('');
+
+                dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const option = e.target.closest('.select-option');
+                if (option) {
+                    const id = option.dataset.id;
+                    const selected = data.find(item => item.id.toString() === id);
+                    if (onSelect) onSelect(selected);
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 載入使用者資料
+                const response = await fetch('/users/');
+                const users = await response.json();
+
+                // 初始化使用者搜尋
+                initializeSearchSelect(
+                    'user_search',
+                    'user_dropdown',
+                    users,
+                    'name',
+                    'id',
+                    (user) => {
+                        selectedUser = user;
+                        // 填充表單資料
+                        document.getElementById('name').value = user.name || '';
+                        document.getElementById('email').value = user.email || '';
+                        document.getElementById('birthday').value = user.birthday || '';
+                        document.getElementById('mobile_number').value = user.mobile_number || '';
+                        document.getElementById('level').value = user.level || '';
+                        document.getElementById('role').value = user.role || '';
+                    }
+                );
+
+            } catch (error) {
+                console.error('Error initializing form:', error);
+                alert('載入資料時發生錯誤，請重新整理頁面。');
+            }
+        });
+
+        // 表單提交處理
+        const form = document.getElementById('updateForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedUser) {
+                alert('請先選擇要更新的使用者');
+                return;
+            }
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const formUserData = {};
+
+            // 清理表單數據
+            for (let [key, value] of formData.entries()) {
+                if (value !== '') {
+                    formUserData[key] = value;
+                }
+            }
+
+            try {
+                const response = await fetch(`/user/${selectedUser.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formUserData)
+                });
+
+                if (response.ok) {
+                    alert('更新成功！');
+                    location.reload(); // 重新載入頁面以更新數據
+                } else {
+                    const error = await response.json();
+                    alert(`更新失敗：${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('更新時發生錯誤，請稍後再試。');
+            }
+        });
+
+        // 表單驗證
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+    </script>
+{% endblock %}
