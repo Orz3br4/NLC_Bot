@@ -135,7 +135,6 @@
             if (branchId) {
                 organizationSelects.district.disabled = false;
                 try {
-                    console.log('=====branchId', branchId);
                     const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
                     const districts = await response.json();
                     populateSelect(organizationSelects.district, districts);
@@ -191,19 +190,18 @@
             }
 
             const formData = new FormData(form);
-            const userData = {};
+            const formUserData = {};
             const organizationData = {
                 user_id: null,
                 unit_id: null  // 將根據選擇的最後一個組織單位設置
             };
 
-            // TODO: Fix add user issue
             try {
                 // 清理表單數據
                 for (let [key, value] of formData.entries()) {
                     if (value !== '') {
                         if (!['branch', 'district', 'group', 'ekk'].includes(key)) {
-                            userData[key] = value;
+                            formUserData[key] = value;
                         }
                     }
                 }
@@ -225,7 +223,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(userData)
+                    body: JSON.stringify(formUserData)
                 });
 
                 const userData = await userResponse.json();
@@ -233,8 +231,7 @@
                 if (userResponse.ok && organizationData.unit_id) {
                     // 如果用戶創建成功且有選擇組織，則建立用戶-組織關聯
                     organizationData.user_id = userData.id;
-                    console.log('====organizationData', organizationData);
-                    const orgResponse = await fetch('test/user-organization-units/', {
+                    const orgResponse = await fetch('/user-organization-units/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
