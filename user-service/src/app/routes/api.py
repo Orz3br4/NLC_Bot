@@ -57,6 +57,28 @@ async def get_user_update_form(request: Request):
         }
     )
 
+@router.get("/user/delete")
+async def get_user_delete_form(request: Request):
+    return templates.TemplateResponse(
+        "user/delete.html",  # 這裡假設模板放在 templates/user/delete.html
+        {
+            "request": request,
+            "title": "刪除使用者"
+        }
+    )
+
+@router.get("/users/", response_model=List[schemas.UserInDB])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = db.query(models.User).offset(skip).limit(limit).all()
+    return users
+
+@router.get("/user/{user_id}", response_model=schemas.UserInDB)
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
 @router.put("/user/{user_id}", response_model=schemas.UserInDB)
 def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
     try:
@@ -88,40 +110,30 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(ge
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/users/", response_model=List[schemas.UserInDB])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = db.query(models.User).offset(skip).limit(limit).all()
-    return users
-
-@router.get("/user/{user_id}", response_model=schemas.UserInDB)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-@router.put("/user/{user_id}", response_model=schemas.UserInDB)
-def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    for key, value in user.model_dump(exclude_unset=True).items():
-        setattr(db_user, key, value)
-    
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        # 檢查用戶是否存在
+        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # 刪除相關的組織單位關聯
+        db.query(models.User_organization_units).filter(
+            models.User_organization_units.user_id == user_id
+        ).delete()
+        
+        # 刪除用戶
+        db.delete(db_user)
+        db.commit()
+        
+        return {"message": "User successfully deleted"}
     
-    db.delete(db_user)
-    db.commit()
-    return {"detail": "User deleted"}
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ========== Organization Category routes ==========
 @router.get("/organization-category/create")

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+
+            <!-- 用戶搜索區域 -->
+            <div class="form-group">
+                <label>選擇要刪除的使用者</label>
+                <div class="search-select-container">
+                    <input type="text" id="user_search" class="search-input" placeholder="搜尋使用者...">
+                    <div id="user_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇要刪除的使用者</div>
+            </div>
+
+            <!-- 用戶資料顯示區域 -->
+            <div id="userInfo" style="display: none; margin-top: 2rem;">
+                <h2 style="margin-bottom: 1rem;">使用者資料</h2>
+                <div class="user-info-container" style="background: #f5f5f5; padding: 1rem; border-radius: 4px;">
+                    <p><strong>姓名：</strong><span id="info_name"></span></p>
+                    <p><strong>電子郵件：</strong><span id="info_email"></span></p>
+                    <p><strong>手機號碼：</strong><span id="info_mobile"></span></p>
+                    <p><strong>靈程：</strong><span id="info_level"></span></p>
+                    <p><strong>教會職分：</strong><span id="info_role"></span></p>
+                </div>
+                <div style="margin-top: 2rem;">
+                    <button type="button" id="deleteButton" class="delete-button">刪除使用者</button>
+                </div>
+            </div>
+
+            <!-- 確認對話框 -->
+            <div id="confirmDialog" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h2>確認刪除</h2>
+                    <p>您確定要刪除這個使用者嗎？此操作不可撤銷。</p>
+                    <div class="modal-buttons">
+                        <button type="button" id="confirmDelete" class="danger-button">確認刪除</button>
+                        <button type="button" id="cancelDelete" class="cancel-button">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .danger-button {
+            background-color: #dc3545;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .danger-button:hover {
+            background-color: #c82333;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .cancel-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+
+    <script>
+        let selectedUser = null;
+        const userInfo = document.getElementById('userInfo');
+        const deleteButton = document.getElementById('deleteButton');
+        const confirmDialog = document.getElementById('confirmDialog');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const cancelDelete = document.getElementById('cancelDelete');
+
+        // 初始化搜尋下拉選單
+        function initializeSearchSelect(inputId, dropdownId, data, displayKey, valueKey, onSelect) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+
+            input.addEventListener('input', () => {
+                const searchText = input.value.toLowerCase();
+                const filtered = data.filter(item => 
+                    item[displayKey].toLowerCase().includes(searchText)
+                );
+
+                dropdown.innerHTML = filtered.map(item => `
+                    <div class="select-option" data-id="${item[valueKey]}">
+                        ${item[displayKey]}
+                    </div>
+                `).join('');
+
+                dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const option = e.target.closest('.select-option');
+                if (option) {
+                    const id = option.dataset.id;
+                    const selected = data.find(item => item.id.toString() === id);
+                    if (onSelect) onSelect(selected);
+                    dropdown.style.display = 'none';
+                    input.value = selected[displayKey];
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // 更新使用者資訊顯示
+        function updateUserInfo(user) {
+            document.getElementById('info_name').textContent = user.name || '未提供';
+            document.getElementById('info_email').textContent = user.email || '未提供';
+            document.getElementById('info_mobile').textContent = user.mobile_number || '未提供';
+            document.getElementById('info_level').textContent = user.level || '未提供';
+            document.getElementById('info_role').textContent = user.role || '未提供';
+            userInfo.style.display = 'block';
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 載入使用者資料
+                const response = await fetch('/users/');
+                const users = await response.json();
+
+                // 初始化使用者搜尋
+                initializeSearchSelect(
+                    'user_search',
+                    'user_dropdown',
+                    users,
+                    'name',
+                    'id',
+                    (user) => {
+                        selectedUser = user;
+                        updateUserInfo(user);
+                    }
+                );
+
+            } catch (error) {
+                console.error('Error initializing form:', error);
+                alert('載入資料時發生錯誤，請重新整理頁面。');
+            }
+        });
+
+        // 刪除按鈕事件處理
+        deleteButton.addEventListener('click', () => {
+            if (selectedUser) {
+                confirmDialog.style.display = 'flex';
+            }
+        });
+
+        // 確認刪除
+        confirmDelete.addEventListener('click', async () => {
+            if (!selectedUser) return;
+
+            try {
+                const response = await fetch(`/user/${selectedUser.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('使用者已成功刪除！');
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`刪除失敗：${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('刪除時發生錯誤，請稍後再試。');
+            }
+
+            confirmDialog.style.display = 'none';
+        });
+
+        // 取消刪除
+        cancelDelete.addEventListener('click', () => {
+            confirmDialog.style.display = 'none';
+        });
+    </script>
+{% endblock %}
