@@ -32,10 +32,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             if db_user:
                 raise HTTPException(status_code=400, detail="Email already registered")
         
-        # 將用戶數據轉換為字典，並移除所有 None 值
+        # Convert user data to dictionary data type and remove all "None" value
         user_data = user.model_dump(exclude_none=True)
         
-        # 創建新用戶
+        # Create new user
         db_user = models.User(**user_data)
         db.add(db_user)
         db.commit()
@@ -45,12 +45,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-# 修改現有的更新用戶表單路由
+
 @router.get("/user/update")
 async def get_user_update_form(request: Request):
     return templates.TemplateResponse(
-        "user/update.html",  # 這裡假設模板放在 templates/user/update.html
+        "user/update.html",
         {
             "request": request,
             "title": "更新使用者資料"
@@ -60,7 +59,7 @@ async def get_user_update_form(request: Request):
 @router.get("/user/delete")
 async def get_user_delete_form(request: Request):
     return templates.TemplateResponse(
-        "user/delete.html",  # 這裡假設模板放在 templates/user/delete.html
+        "user/delete.html",
         {
             "request": request,
             "title": "刪除使用者"
@@ -82,18 +81,18 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 @router.put("/user/{user_id}", response_model=schemas.UserInDB)
 def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
     try:
-        # 檢查用戶是否存在
+        # Confirm if user exists
         db_user = db.query(models.User).filter(models.User.id == user_id).first()
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # 如果提供了 email 且與當前不同，檢查是否已被使用
+        # If email provided is different from current one, then confirm if it is used
         if user.email and user.email != db_user.email:
             existing_user = db.query(models.User).filter(models.User.email == user.email).first()
             if existing_user:
                 raise HTTPException(status_code=400, detail="Email already registered")
         
-        # 更新用戶資料
+        # Update user data
         update_data = user.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_user, key, value)
@@ -113,17 +112,17 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(ge
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     try:
-        # 檢查用戶是否存在
+        # Confirm if user exists
         db_user = db.query(models.User).filter(models.User.id == user_id).first()
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # 刪除相關的組織單位關聯
+        # Delete related "user -> organization units" data
         db.query(models.User_organization_units).filter(
             models.User_organization_units.user_id == user_id
         ).delete()
         
-        # 刪除用戶
+        # Delete user
         db.delete(db_user)
         db.commit()
         
@@ -257,7 +256,7 @@ def update_organization_unit(
     if not db_unit:
         raise HTTPException(status_code=404, detail="Organization unit not found")
 
-    # 更新資料
+    # Update data
     for key, value in unit.dict(exclude_unset=True).items():
         setattr(db_unit, key, value)
 
