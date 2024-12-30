@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Date, DateTime, Enum
 from sqlalchemy.sql import func
 from .database import Base
+from . import schemas
 
 class User(Base):
     __tablename__ = "users"
@@ -42,3 +43,12 @@ class User_organization_units(Base):
     unit_id = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class Meeting_attendance(Base):
+    __tablename__ = "meeting_attendance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    meeting_type = Column(Enum(schemas.MeetingType), nullable=False)
+    meeting_date = Column(Date, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

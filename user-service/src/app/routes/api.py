@@ -1,9 +1,11 @@
+from datetime import date
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from typing import List, Optional
+from sqlalchemy.exc import SQLAlchemyError, ProgrammingError, OperationalError
+from typing import Dict, List, Optional
 from .. import schemas, models
 from ..database import get_db
 from app.schemas import PaginatedResponse
@@ -12,6 +14,8 @@ router = APIRouter()
 
 # Set template directory
 templates = Jinja2Templates(directory="src/app/templates")
+
+logger = logging.getLogger(__name__)
 
 # ========== User routes ==========
 @router.get("/user/create")
@@ -267,6 +271,25 @@ def update_organization_unit(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     
+@router.get("/organization-units/{unit_id}/members", response_model=List[schemas.UserInDB])
+async def get_unit_members(
+    unit_id: int,
+    db: Session = Depends(get_db)
+):
+    """獲取指定組織單位的所有成員"""
+    members = db.query(models.User)\
+        .join(
+            models.User_organization_units,
+            models.User.id == models.User_organization_units.user_id
+        )\
+        .filter(models.User_organization_units.unit_id == unit_id)\
+        .all()
+    
+    if not members:
+        raise HTTPException(status_code=404, detail="No members found in this unit")
+    
+    return members
+    
 @router.get("/organization-units/by-parent-unit/{parent_unit_id}", response_model=List[schemas.OrganizationUnitInDB])
 def read_units_by_parent_unit(parent_unit_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     units = db.query(models.Organization_units)\
@@ -334,3 +357,133 @@ async def get_user_organization_units(
         .filter(models.User_organization_units.user_id == user_id)\
         .all()
     return units
+
+# Attendance API
+@router.get("/attendance/report")
+async def get_attendance_report_form(request: Request):
+    return templates.TemplateResponse(
+        "numbers/attendance_report.html",
+        {
+            "request": request,
+            "title": "本週主日小組民數"
+        }
+    )
+
+@router.post("/attendance/submit")
+async def submit_attendance(
+    data: Dict,
+    db: Session = Depends(get_db)
+):
+    """提交出席記錄"""
+    try:
+        # 驗證日期格式
+        try:
+            attendance_date = date.fromisoformat(data['date'])
+        except (KeyError, ValueError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="無效的日期格式。請使用 YYYY-MM-DD 格式。"
+            )
+
+        # 驗證出席資料結構
+        if not data.get('attendance'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="缺少出席資料。"
+            )
+
+        attendance_records = []
+        
+        # 處理每個成員的出席記錄
+        for user_id, meetings in data['attendance'].items():
+            try:
+                user_id = int(user_id)
+                # 檢查用戶是否存在
+                user = db.query(models.User).filter(models.User.id == user_id).first()
+                if not user:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"找不到 ID 為 {user_id} 的用戶"
+                    )
+
+                # 檢查是否已有該日期的出席記錄
+                existing_records = db.query(models.Meeting_attendance).filter(
+                    models.Meeting_attendance.user_id == user_id,
+                    models.Meeting_attendance.meeting_date == attendance_date
+                ).all()
+
+                if existing_records:
+                    # 如果有現有記錄，刪除它們
+                    for record in existing_records:
+                        db.delete(record)
+
+                # 添加新的出席記錄
+                if meetings.get('sunday'):
+                    attendance_records.append(
+                        models.Meeting_attendance(
+                            user_id=user_id,
+                            meeting_type=schemas.MeetingType.SUNDAY_SERVICE,
+                            meeting_date=attendance_date
+                        )
+                    )
+                
+                if meetings.get('group'):
+                    attendance_records.append(
+                        models.Meeting_attendance(
+                            user_id=user_id,
+                            meeting_type=schemas.MeetingType.GROUP_MEETING,
+                            meeting_date=attendance_date
+                        )
+                    )
+
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"無效的用戶 ID: {user_id}"
+                )
+
+        # 批量新增出席記錄
+        try:
+            db.bulk_save_objects(attendance_records)
+            db.commit()
+        except ProgrammingError as e:
+            db.rollback()
+            logger.error(f"資料庫結構錯誤: {str(e)}")
+            if 'column "meeting_date" of relation "meeting_attendance" does not exist' in str(e):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="資料庫結構不完整。請聯繫系統管理員執行資料庫遷移。"
+                )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="資料庫操作錯誤，請聯繫系統管理員。"
+            )
+        except OperationalError as e:
+            db.rollback()
+            logger.error(f"資料庫連線錯誤: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="無法連接到資料庫，請稍後再試。"
+            )
+        except SQLAlchemyError as e:
+            db.rollback()
+            logger.error(f"資料庫錯誤: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="儲存出席記錄時發生錯誤。"
+            )
+
+        return {
+            "message": "出席記錄提交成功",
+            "records_count": len(attendance_records),
+            "date": attendance_date.isoformat()
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"未預期的錯誤: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="處理請求時發生未預期的錯誤。"
+        )

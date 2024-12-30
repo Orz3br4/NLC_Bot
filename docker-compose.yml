@@ -23,12 +23,27 @@ services:
       - SECRET_KEY=dev-secret-key
       - DEBUG=1
       - CORS_ORIGINS=["http://localhost", "http://localhost:3000"]
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src  # 指定重載目錄
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
     ports:
-      - "8000:8000"  # 為了方便直接訪問 API（可選）
+      - "8000:8000"
     depends_on:
       - user-db
       - user-cache
+    networks:
+      - api_network
+
+  migration:
+    build: 
+      context: .
+      dockerfile: user-service/Dockerfile
+    volumes:
+      - ./user-service/src:/app/src
+    environment:
+      - PYTHONPATH=/app/src
+      - DATABASE_URL=postgresql://user:userpass@user-db/userdb
+    command: alembic upgrade head
+    depends_on:
+      - user-db
     networks:
       - api_network
 

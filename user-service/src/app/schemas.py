@@ -121,3 +121,22 @@ class UserOrganizationUnitInDB(UserOrganizationUnitBase):
 
     class Config:
         from_attributes = True
+
+class MeetingType(str, Enum):
+    SUNDAY_SERVICE = "主日"
+    GROUP_MEETING = "小組"
+
+class MeetingAttendanceBase(BaseModel):
+    user_id: int
+    meeting_type: MeetingType
+    meeting_date: date
+
+class MeetingAttendanceCreate(MeetingAttendanceBase):
+    pass
+
+class MeetingAttendanceInDB(MeetingAttendanceBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
