@@ -1,8 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
-from datetime import date, datetime
-from typing import Optional, List, Generic, TypeVar
+from datetime import date, datetime, timedelta
+from typing import Optional, List, Dict, Generic, TypeVar
 from enum import Enum
-
 
 T = TypeVar('T')
 
@@ -137,6 +136,27 @@ class MeetingAttendanceCreate(MeetingAttendanceBase):
 class MeetingAttendanceInDB(MeetingAttendanceBase):
     id: int
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AttendanceStats(BaseModel):
+    christian_count: int
+    vip_count: int
+    new_friend_count: int
+    total_count: int
+    attendees: List[Dict]
+    unique_attendees: int
+
+    class Config:
+        from_attributes = True
+
+class WeeklyAttendanceReport(BaseModel):
+    sunday_service: AttendanceStats
+    group_meeting: AttendanceStats
+    unit_name: str
+    start_date: date
+    end_date: date
 
     class Config:
         from_attributes = True
