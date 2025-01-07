@@ -357,6 +357,41 @@ async def get_organization_hierarchy(
     
     return build_hierarchy()
 
+@router.get("/organization-units/hierarchy-up/{unit_id}", response_model=List[schemas.OrganizationUnitInDB])
+async def get_unit_hierarchy_up(unit_id: int, db: Session = Depends(get_db)):
+    """
+    Get the complete hierarchy from a unit up to the branch level
+    
+    Args:
+        unit_id: ID of the starting unit
+        db: Database session
+        
+    Returns:
+        List[OrganizationUnitInDB]: List of units in hierarchical order (bottom to top)
+    """
+    try:
+        units = []
+        current_unit_id = unit_id
+        
+        while current_unit_id is not None:
+            # Get current unit
+            current_unit = db.query(models.Organization_units).filter(
+                models.Organization_units.id == current_unit_id
+            ).first()
+            
+            if not current_unit:
+                break
+                
+            units.append(current_unit)
+            current_unit_id = current_unit.parent_unit_id
+            
+        return units
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
 @router.get("/organization-units/{unit_id}", response_model=schemas.OrganizationUnitInDB)
 def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
     db_unit = db.query(models.Organization_units).filter(models.Organization_units.id == unit_id).first()
