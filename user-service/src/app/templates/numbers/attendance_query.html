@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">組織出席統計</h1>
+
+            <!-- 組織選擇區域 -->
+            <div class="organization-section">
+                <div class="form-group">
+                    <label for="branch">分堂</label>
+                    <select id="branch" name="branch">
+                        <option value="" disabled selected>請選擇分堂</option>
+                    </select>
+                    <div class="error">請選擇分堂</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="district">小區</label>
+                    <select id="district" name="district" disabled>
+                        <option value="" disabled selected>請選擇小區</option>
+                    </select>
+                    <div class="error">請選擇小區</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="group">小組</label>
+                    <select id="group" name="group" disabled>
+                        <option value="" disabled selected>請選擇小組</option>
+                    </select>
+                    <div class="error">請選擇小組</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ekk">EKK</label>
+                    <select id="ekk" name="ekk" disabled>
+                        <option value="" disabled selected>請選擇EKK</option>
+                    </select>
+                    <div class="error">請選擇EKK</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reportDate">報表日期</label>
+                    <input type="date" id="reportDate" name="reportDate">
+                    <div class="error">請選擇日期</div>
+                </div>
+
+                <button type="button" id="searchBtn" class="search-button">查詢出席狀況</button>
+            </div>
+
+            <!-- 出席報表顯示區域 -->
+            <div id="reportContainer" style="display: none; margin-top: 2rem;">
+                <div class="report-header">
+                    <h2 id="unitName" style="text-align: center; margin-bottom: 1rem;"></h2>
+                    <p id="dateRange" style="text-align: center; margin-bottom: 2rem;"></p>
+                </div>
+
+                <div class="report-section">
+                    <h3>主日聚會出席統計</h3>
+                    <div id="sundayStats" class="stats-container" style="display: flex; flex-direction: column;">
+                        <div class="stat-item">
+                            <label>基督徒出席：</label>
+                            <span id="sunday-christian"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>慕道友出席：</label>
+                            <span id="sunday-vip"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>新朋友出席：</label>
+                            <span id="sunday-new"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>總出席人數：</label>
+                            <span id="sunday-total"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>小組聚會出席統計</h3>
+                    <div id="groupStats" class="stats-container" style="display: flex; flex-direction: column;">
+                        <div class="stat-item">
+                            <label>基督徒出席：</label>
+                            <span id="group-christian"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>慕道友出席：</label>
+                            <span id="group-vip"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>新朋友出席：</label>
+                            <span id="group-new"></span>
+                        </div>
+                        <div class="stat-item">
+                            <label>總出席人數：</label>
+                            <span id="group-total"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+        }
+
+        .search-button {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-button:hover {
+            background-color: #357abd;
+        }
+
+        .report-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .report-section h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+    </style>
+
+    <script>
+        const organizationSelects = {
+            branch: document.getElementById('branch'),
+            district: document.getElementById('district'),
+            group: document.getElementById('group'),
+            ekk: document.getElementById('ekk')
+        };
+
+        const categoryMap = {
+            branch: 1,
+            district: 2,
+            group: 3,
+            ekk: 4
+        };
+
+        // 初始化載入分堂資料
+        async function loadBranches() {
+            try {
+                const response = await fetch(`/organization-units/by-category/${categoryMap.branch}`);
+                const branches = await response.json();
+                populateSelect(organizationSelects.branch, branches);
+            } catch (error) {
+                console.error('Error loading branches:', error);
+            }
+        }
+
+        // 工具函數
+        function populateSelect(select, items) {
+            select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.unit_name;
+                select.appendChild(option);
+            });
+        }
+
+        function resetSelect(select) {
+            select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+            select.disabled = true;
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // 級聯選單事件處理
+        organizationSelects.branch.addEventListener('change', async () => {
+            const branchId = organizationSelects.branch.value;
+            resetSelect(organizationSelects.district);
+            resetSelect(organizationSelects.group);
+            resetSelect(organizationSelects.ekk);
+            
+            if (branchId) {
+                organizationSelects.district.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
+                    const districts = await response.json();
+                    populateSelect(organizationSelects.district, districts);
+                } catch (error) {
+                    console.error('Error loading districts:', error);
+                }
+            }
+        });
+
+        organizationSelects.district.addEventListener('change', async () => {
+            const districtId = organizationSelects.district.value;
+            resetSelect(organizationSelects.group);
+            resetSelect(organizationSelects.ekk);
+            
+            if (districtId) {
+                organizationSelects.group.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${districtId}`);
+                    const groups = await response.json();
+                    populateSelect(organizationSelects.group, groups);
+                } catch (error) {
+                    console.error('Error loading groups:', error);
+                }
+            }
+        });
+
+        organizationSelects.group.addEventListener('change', async () => {
+            const groupId = organizationSelects.group.value;
+            resetSelect(organizationSelects.ekk);
+            
+            if (groupId) {
+                organizationSelects.ekk.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${groupId}`);
+                    const ekks = await response.json();
+                    populateSelect(organizationSelects.ekk, ekks);
+                } catch (error) {
+                    console.error('Error loading ekks:', error);
+                }
+            }
+        });
+
+        // 查詢出席報表
+        async function loadAttendanceReport(unitId, reportDate = null) {
+            try {
+                let url = `/attendance/weekly/report/${unitId}`;
+                if (reportDate) {
+                    url += `?report_date=${reportDate}`;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to load attendance report');
+                }
+
+                const report = await response.json();
+                
+                // 顯示報表容器
+                document.getElementById('reportContainer').style.display = 'block';
+                
+                // 更新標題資訊
+                document.getElementById('unitName').textContent = report.unit_name;
+                document.getElementById('dateRange').textContent = 
+                    `${formatDate(report.start_date)} ~ ${formatDate(report.end_date)}`;
+                
+                // 更新主日統計
+                document.getElementById('sunday-christian').textContent = report.sunday_service.christian_count;
+                document.getElementById('sunday-vip').textContent = report.sunday_service.vip_count;
+                document.getElementById('sunday-new').textContent = report.sunday_service.new_friend_count;
+                document.getElementById('sunday-total').textContent = report.sunday_service.total_count;
+                
+                // 更新小組統計
+                document.getElementById('group-christian').textContent = report.group_meeting.christian_count;
+                document.getElementById('group-vip').textContent = report.group_meeting.vip_count;
+                document.getElementById('group-new').textContent = report.group_meeting.new_friend_count;
+                document.getElementById('group-total').textContent = report.group_meeting.total_count;
+                
+            } catch (error) {
+                console.error('Error loading attendance report:', error);
+                alert('載入出席報表時發生錯誤，請稍後再試。');
+            }
+        }
+
+        // 查詢按鈕事件處理
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            // 獲取選擇的最後一個組織單位ID
+            let selectedUnitId = organizationSelects.ekk.value || 
+                               organizationSelects.group.value || 
+                               organizationSelects.district.value || 
+                               organizationSelects.branch.value;
+
+            if (!selectedUnitId) {
+                alert('請選擇要查詢的組織單位');
+                return;
+            }
+
+            const reportDate = document.getElementById('reportDate').value;
+            loadAttendanceReport(selectedUnitId, reportDate);
+        });
+
+        // 初始化載入
+        loadBranches();
+    </script>
+{% endblock %}

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
@@ -426,19 +426,51 @@ async def get_unit_members(
     unit_id: int,
     db: Session = Depends(get_db)
 ):
-    """獲取指定組織單位的所有成員"""
-    members = db.query(models.User)\
-        .join(
+    """
+    獲取指定組織單位及其所有子單位的所有成員
+    
+    Args:
+        unit_id: 組織單位ID
+        db: 資料庫連線
+        
+    Returns:
+        List[UserInDB]: 該單位及其所有子單位的成員列表
+    """
+    try:
+        # 遞迴獲取所有子單位ID的函數
+        def get_all_sub_units(parent_unit_id):
+            sub_units = db.query(models.Organization_units.id).filter(
+                models.Organization_units.parent_unit_id == parent_unit_id
+            ).all()
+            unit_ids = [parent_unit_id]
+            for sub_unit in sub_units:
+                unit_ids.extend(get_all_sub_units(sub_unit.id))
+            return unit_ids
+
+        # 獲取當前單位及其所有子單位的ID
+        all_unit_ids = get_all_sub_units(unit_id)
+
+        # 查詢所有相關單位的成員
+        members = db.query(models.User).distinct().join(
             models.User_organization_units,
             models.User.id == models.User_organization_units.user_id
-        )\
-        .filter(models.User_organization_units.unit_id == unit_id)\
-        .all()
-    
-    if not members:
-        raise HTTPException(status_code=404, detail="No members found in this unit")
-    
-    return members
+        ).filter(
+            models.User_organization_units.unit_id.in_(all_unit_ids)
+        ).all()
+        
+        if not members:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No members found in unit {unit_id} or its sub-units"
+            )
+        
+        return members
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving members: {str(e)}"
+        )
     
 @router.get("/organization-units/by-parent-unit/{parent_unit_id}", response_model=List[schemas.OrganizationUnitInDB])
 def read_units_by_parent_unit(parent_unit_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -513,6 +545,16 @@ async def get_user_organization_units(
 async def get_attendance_report_form(request: Request):
     return templates.TemplateResponse(
         "numbers/attendance_report.html",
+        {
+            "request": request,
+            "title": "回報本週主日小組民數"
+        }
+    )
+
+@router.get("/attendance/query")
+async def get_attendance_record_by_query(request: Request):
+    return templates.TemplateResponse(
+        "numbers/attendance_query.html",
         {
             "request": request,
             "title": "本週主日小組民數"
