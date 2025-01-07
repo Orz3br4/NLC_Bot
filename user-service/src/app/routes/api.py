@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
@@ -59,7 +59,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             if db_user:
                 raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Convert user data to dictionary data type and remove all "None" value
         user_data = user.model_dump(exclude_none=True)
+        
+        # Create new user
         db_user = models.User(**user_data)
         db.add(db_user)
         db.commit()
@@ -69,6 +72,26 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/user/update")
+async def get_user_update_form(request: Request):
+    return templates.TemplateResponse(
+        "user/update.html",
+        {
+            "request": request,
+            "title": "更新使用者資料"
+        }
+    )
+
+@router.get("/user/delete")
+async def get_user_delete_form(request: Request):
+    return templates.TemplateResponse(
+        "user/delete.html",
+        {
+            "request": request,
+            "title": "刪除使用者"
+        }
+    )
 
 @router.get("/users/", response_model=List[schemas.UserInDB])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -123,15 +146,18 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(ge
         HTTPException: If user not found or email already exists
     """
     try:
+        # Confirm if user exists
         db_user = db.query(models.User).filter(models.User.id == user_id).first()
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # If email provided is different from current one, then confirm if it is used
         if user.email and user.email != db_user.email:
             existing_user = db.query(models.User).filter(models.User.email == user.email).first()
             if existing_user:
                 raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Update user data
         update_data = user.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_user, key, value)
@@ -164,14 +190,17 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         HTTPException: If user not found or deletion fails
     """
     try:
+        # Confirm if user exists
         db_user = db.query(models.User).filter(models.User.id == user_id).first()
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Delete related "user -> organization units" data
         db.query(models.User_organization_units).filter(
             models.User_organization_units.user_id == user_id
         ).delete()
         
+        # Delete user
         db.delete(db_user)
         db.commit()
         
@@ -184,6 +213,16 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ========== Organization Category routes ==========
+@router.get("/organization-category/create")
+async def get_create_organization_category_form(request: Request):
+    return templates.TemplateResponse(
+        "organization_category/create.html",
+        {
+            "request": request,
+            "title": "新增組織類別"
+        }
+    )
+
 @router.post("/organization-category/create", response_model=schemas.OrganizationCategoryInDB)
 def create_organization_category(
     category: schemas.OrganizationCategoryCreate, 
@@ -239,7 +278,17 @@ async def read_organization_categories(
         "limit": limit
     }
 
-# ========== Organization Unit routes ==========
+# Organization Unit routes
+@router.get("/organization-unit/create")
+async def get_create_organization_category_form(request: Request):
+    return templates.TemplateResponse(
+        "organization_unit/create.html",
+        {
+            "request": request,
+            "title": "新增組織單位"
+        }
+    )
+
 @router.post("/organization-unit/create", response_model=schemas.OrganizationUnitInDB)
 def create_organization_unit(
     unit: schemas.OrganizationUnitCreate, 
@@ -260,6 +309,22 @@ def create_organization_unit(
     db.commit()
     db.refresh(db_unit)
     return db_unit
+
+@router.get("/organization-units/", response_model=List[schemas.OrganizationUnitInDB])
+def read_organization_units(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    units = db.query(models.Organization_units).offset(skip).limit(limit).all()
+    return units
+
+# This API must be placed here, or it will never be accessible
+@router.get("/organization-units/update")
+async def get_organization_unit_update_form(request: Request):
+    return templates.TemplateResponse(
+        "organization_unit/update.html",
+        {
+            "request": request,
+            "title": "更新組織單位資料"
+        }
+    )
 
 @router.get("/organization-units/hierarchy", response_model=List[dict])
 async def get_organization_hierarchy(
@@ -292,6 +357,133 @@ async def get_organization_hierarchy(
     
     return build_hierarchy()
 
+@router.get("/organization-units/{unit_id}", response_model=schemas.OrganizationUnitInDB)
+def read_organization_unit(unit_id: int, db: Session = Depends(get_db)):
+    db_unit = db.query(models.Organization_units).filter(models.Organization_units.id == unit_id).first()
+    if db_unit is None:
+        raise HTTPException(status_code=404, detail="Organization unit not found")
+    return db_unit
+
+@router.put("/organization-units/{unit_id}/update", response_model=schemas.OrganizationUnitUpdate)
+def update_organization_unit(
+    unit_id: int,
+    unit: schemas.OrganizationUnitUpdate,
+    db: Session = Depends(get_db)
+):
+    # Confirm if organization unit exists
+    db_unit = db.query(models.Organization_units).filter(models.Organization_units.id == unit_id).first()
+    if not db_unit:
+        raise HTTPException(status_code=404, detail="Organization unit not found")
+
+    # Update data
+    for key, value in unit.dict(exclude_unset=True).items():
+        setattr(db_unit, key, value)
+
+    try:
+        db.commit()
+        return db_unit
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/organization-units/{unit_id}/members", response_model=List[schemas.UserInDB])
+async def get_unit_members(
+    unit_id: int,
+    db: Session = Depends(get_db)
+):
+    """獲取指定組織單位的所有成員"""
+    members = db.query(models.User)\
+        .join(
+            models.User_organization_units,
+            models.User.id == models.User_organization_units.user_id
+        )\
+        .filter(models.User_organization_units.unit_id == unit_id)\
+        .all()
+    
+    if not members:
+        raise HTTPException(status_code=404, detail="No members found in this unit")
+    
+    return members
+    
+@router.get("/organization-units/by-parent-unit/{parent_unit_id}", response_model=List[schemas.OrganizationUnitInDB])
+def read_units_by_parent_unit(parent_unit_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    units = db.query(models.Organization_units)\
+        .filter(models.Organization_units.parent_unit_id == parent_unit_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return units
+
+@router.get("/organization-units/by-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
+async def read_organization_units_by_category(
+    category_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    units = db.query(models.Organization_units)\
+        .filter(models.Organization_units.category_id == category_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return units
+
+@router.get("/organization-units/by-parent-category/{category_id}", response_model=List[schemas.OrganizationUnitInDB])
+async def read_parent_organization_units_by_category(
+    category_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    parent_category_id = category_id - 1
+    units = db.query(models.Organization_units)\
+        .filter(models.Organization_units.category_id == parent_category_id)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return units
+
+# User Organization Unit routes
+@router.post("/user-organization-units/", response_model=schemas.UserOrganizationUnitInDB)
+def create_user_organization_unit(
+    user_unit: schemas.UserOrganizationUnitCreate, 
+    db: Session = Depends(get_db)
+):
+    db_user_unit = models.User_organization_units(**user_unit.model_dump())
+    db.add(db_user_unit)
+    db.commit()
+    db.refresh(db_user_unit)
+    return db_user_unit
+
+@router.get("/user-organization-units/by-user/{user_id}", response_model=List[schemas.UserOrganizationUnitInDB])
+def read_user_organization_units(user_id: int, db: Session = Depends(get_db)):
+    user_units = db.query(models.User_organization_units).filter(
+        models.User_organization_units.user_id == user_id
+    ).all()
+    return user_units
+
+@router.get("/users/{user_id}/organization-units", response_model=List[schemas.OrganizationUnitInDB])
+async def get_user_organization_units(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    units = db.query(models.Organization_units)\
+        .select_from(models.User_organization_units)\
+        .filter(models.User_organization_units.user_id == user_id)\
+        .all()
+    return units
+
+# Attendance API
+@router.get("/attendance/report")
+async def get_attendance_report_form(request: Request):
+    return templates.TemplateResponse(
+        "numbers/attendance_report.html",
+        {
+            "request": request,
+            "title": "本週主日小組民數"
+        }
+    )
+
 @router.post("/attendance/submit")
 async def submit_attendance(
     data: Dict,
@@ -320,6 +512,7 @@ async def submit_attendance(
         HTTPException: If data format is invalid or database operation fails
     """
     try:
+        # 驗證日期格式
         try:
             attendance_date = date.fromisoformat(data['date'])
         except (KeyError, ValueError) as e:
@@ -328,6 +521,7 @@ async def submit_attendance(
                 detail="無效的日期格式。請使用 YYYY-MM-DD 格式。"
             )
 
+        # 驗證出席資料結構
         if not data.get('attendance'):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -336,9 +530,11 @@ async def submit_attendance(
 
         attendance_records = []
         
+        # 處理每個成員的出席記錄
         for user_id, meetings in data['attendance'].items():
             try:
                 user_id = int(user_id)
+                # 檢查用戶是否存在
                 user = db.query(models.User).filter(models.User.id == user_id).first()
                 if not user:
                     raise HTTPException(
@@ -346,15 +542,18 @@ async def submit_attendance(
                         detail=f"找不到 ID 為 {user_id} 的用戶"
                     )
 
+                # 檢查是否已有該日期的出席記錄
                 existing_records = db.query(models.Meeting_attendance).filter(
                     models.Meeting_attendance.user_id == user_id,
                     models.Meeting_attendance.meeting_date == attendance_date
                 ).all()
 
                 if existing_records:
+                    # 如果有現有記錄，刪除它們
                     for record in existing_records:
                         db.delete(record)
 
+                # 添加新的出席記錄
                 if meetings.get('sunday'):
                     attendance_records.append(
                         models.Meeting_attendance(
@@ -379,6 +578,7 @@ async def submit_attendance(
                     detail=f"無效的用戶 ID: {user_id}"
                 )
 
+        # 批量新增出席記錄
         try:
             db.bulk_save_objects(attendance_records)
             db.commit()

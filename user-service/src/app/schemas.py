@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional, List, Dict, Generic, TypeVar
 from enum import Enum
 
+
 T = TypeVar('T')
 
 class PaginatedResponse(BaseModel, Generic[T]):
