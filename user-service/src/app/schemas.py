@@ -147,7 +147,6 @@ class AttendanceStats(BaseModel):
     new_friend_count: int
     total_count: int
     attendees: List[Dict]
-    unique_attendees: int
 
     class Config:
         from_attributes = True
@@ -155,6 +154,7 @@ class AttendanceStats(BaseModel):
 class WeeklyAttendanceReport(BaseModel):
     sunday_service: AttendanceStats
     group_meeting: AttendanceStats
+    unique: AttendanceStats
     unit_name: str
     start_date: date
     end_date: date

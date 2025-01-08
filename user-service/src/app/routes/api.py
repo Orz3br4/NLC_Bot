@@ -761,8 +761,7 @@ def read_weekly_attendance_report_by_unit(
             "vip_count": 0,
             "new_friend_count": 0,
             "total_count": 0,
-            "attendees": [],
-            "unique_attendees": 0
+            "attendees": []
         }
         
         group_stats = {
@@ -770,8 +769,15 @@ def read_weekly_attendance_report_by_unit(
             "vip_count": 0,
             "new_friend_count": 0,
             "total_count": 0,
-            "attendees": [],
-            "unique_attendees": 0
+            "attendees": []
+        }
+
+        unique_stats = {
+            "christian_count": 0,
+            "vip_count": 0,
+            "new_friend_count": 0,
+            "total_count": 0,
+            "attendees": []
         }
         
         # Get attendance records for the week
@@ -813,12 +819,30 @@ def read_weekly_attendance_report_by_unit(
                 stats["attendees"].append(attendee_info)
         
         # Calculate unique attendees
-        sunday_stats["unique_attendees"] = len(sunday_stats["attendees"])
-        group_stats["unique_attendees"] = len(group_stats["attendees"])
+        for attendee in sunday_stats["attendees"]:
+            if attendee not in unique_stats["attendees"]:
+                unique_stats["attendees"].append(attendee)
+                if attendee["level"] == schemas.UserLevel.CHRISTIAN:
+                    unique_stats["christian_count"] += 1
+                elif attendee["level"] == schemas.UserLevel.VIP:
+                    unique_stats["vip_count"] += 1
+                elif attendee["level"] == schemas.UserLevel.NEW_FRIEND:
+                    unique_stats["new_friend_count"] += 1
+
+        for attendee in group_stats["attendees"]:
+            if attendee not in unique_stats["attendees"]:
+                unique_stats["attendees"].append(attendee)
+                if attendee["level"] == schemas.UserLevel.CHRISTIAN:
+                    unique_stats["christian_count"] += 1
+                elif attendee["level"] == schemas.UserLevel.VIP:
+                    unique_stats["vip_count"] += 1
+                elif attendee["level"] == schemas.UserLevel.NEW_FRIEND:
+                    unique_stats["new_friend_count"] += 1
         
         return WeeklyAttendanceReport(
             sunday_service=AttendanceStats(**sunday_stats),
             group_meeting=AttendanceStats(**group_stats),
+            unique=AttendanceStats(**unique_stats),
             unit_name=unit.unit_name,
             start_date=start_date,
             end_date=end_date
