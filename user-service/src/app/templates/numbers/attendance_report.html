@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="main-content">
+    <div class="form-container">
+        <h1 style="margin-bottom: 2rem; text-align: center;">出席記錄表單</h1>
+        
+        <form id="attendanceForm" novalidate>
+            <!-- 日期選擇 -->
+            <div class="form-group">
+                <label for="date" class="required">日期</label>
+                <input type="date" id="date" name="date" required>
+                <div class="error">請選擇日期</div>
+            </div>
+
+            <!-- 組織選擇區域 -->
+            <div class="organization-section">
+                <div class="form-group">
+                    <label for="branch">分堂</label>
+                    <select id="branch" name="branch">
+                        <option value="" disabled selected>請選擇分堂</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="district">小區</label>
+                    <select id="district" name="district" disabled>
+                        <option value="" disabled selected>請選擇小區</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="group">小組</label>
+                    <select id="group" name="group" disabled>
+                        <option value="" disabled selected>請選擇小組</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ekk">EKK</label>
+                    <select id="ekk" name="ekk" disabled>
+                        <option value="" disabled selected>請選擇EKK</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 成員出席列表 -->
+            <div id="membersList" class="mt-8 hidden" style="padding-bottom: 32px;">
+                <h2 class="text-xl font-bold mb-4">成員出席狀況</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-lg">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="py-3 px-4 text-left font-semibold" style="border-right: solid; padding: 0px 8px">姓名</th>
+                                <th class="py-3 px-4 text-center font-semibold" style="border-right: solid; padding: 0px 8px">主日聚會</th>
+                                <th class="py-3 px-4 text-center font-semibold" style="padding: 0px 8px;">小組聚會</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody">
+                            <!-- 動態填充成員列表 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="w-full">提交出席記錄</button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+    const organizationSelects = {
+        branch: document.getElementById('branch'),
+        district: document.getElementById('district'),
+        group: document.getElementById('group'),
+        ekk: document.getElementById('ekk')
+    };
+
+    const categoryMap = {
+        branch: 1,
+        district: 2,
+        group: 3,
+        ekk: 4
+    };
+
+    // 初始化載入分堂資料
+    async function loadBranches() {
+        try {
+            const response = await fetch(`/organization-units/by-category/${categoryMap.branch}`);
+            const branches = await response.json();
+            populateSelect(organizationSelects.branch, branches);
+        } catch (error) {
+            console.error('Error loading branches:', error);
+        }
+    }
+
+    // 處理級聯選單事件
+    organizationSelects.branch.addEventListener('change', async () => {
+        const branchId = organizationSelects.branch.value;
+        resetSelect(organizationSelects.district);
+        resetSelect(organizationSelects.group);
+        resetSelect(organizationSelects.ekk);
+        document.getElementById('membersList').classList.add('hidden');
+        
+        if (branchId) {
+            organizationSelects.district.disabled = false;
+            try {
+                const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
+                const districts = await response.json();
+                populateSelect(organizationSelects.district, districts);
+            } catch (error) {
+                console.error('Error loading districts:', error);
+            }
+        }
+    });
+
+    organizationSelects.district.addEventListener('change', async () => {
+        const districtId = organizationSelects.district.value;
+        resetSelect(organizationSelects.group);
+        resetSelect(organizationSelects.ekk);
+        document.getElementById('membersList').classList.add('hidden');
+        
+        if (districtId) {
+            organizationSelects.group.disabled = false;
+            try {
+                const response = await fetch(`/organization-units/by-parent-unit/${districtId}`);
+                const groups = await response.json();
+                populateSelect(organizationSelects.group, groups);
+            } catch (error) {
+                console.error('Error loading groups:', error);
+            }
+        }
+    });
+
+    organizationSelects.group.addEventListener('change', async () => {
+        const groupId = organizationSelects.group.value;
+        resetSelect(organizationSelects.ekk);
+        document.getElementById('membersList').classList.add('hidden');
+        
+        if (groupId) {
+            organizationSelects.ekk.disabled = false;
+            try {
+                const response = await fetch(`/organization-units/by-parent-unit/${groupId}`);
+                const ekks = await response.json();
+                populateSelect(organizationSelects.ekk, ekks);
+            } catch (error) {
+                console.error('Error loading ekks:', error);
+            }
+        }
+    });
+
+    organizationSelects.ekk.addEventListener('change', async () => {
+        const unitId = organizationSelects.ekk.value || 
+                      organizationSelects.group.value || 
+                      organizationSelects.district.value || 
+                      organizationSelects.branch.value;
+        
+        if (unitId) {
+            try {
+                const response = await fetch(`/organization-units/${unitId}/members`);
+                const members = await response.json();
+                populateMembersList(members);
+                document.getElementById('membersList').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading members:', error);
+            }
+        }
+    });
+
+    function populateMembersList(members) {
+        const tbody = document.getElementById('membersTableBody');
+        tbody.innerHTML = '';
+        
+        members.forEach((member, index) => {
+            const row = document.createElement('tr');
+            row.classList.add(index % 2 === 0 ? 'bg-white' : 'bg-gray-50', 'hover:bg-gray-100', 'transition-colors');
+            row.innerHTML = `
+                <td class="py-3 px-4 border-b border-gray-200">${member.name}</td>
+                <td class="py-3 px-4 border-b border-gray-200 text-center">
+                    <label class="inline-flex items-center justify-center">
+                        <input type="checkbox" 
+                               name="attendance[${member.id}][sunday]" 
+                               value="true"
+                               class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition duration-150 ease-in-out cursor-pointer">
+                    </label>
+                </td>
+                <td class="py-3 px-4 border-b border-gray-200 text-center">
+                    <label class="inline-flex items-center justify-center">
+                        <input type="checkbox" 
+                               name="attendance[${member.id}][group]" 
+                               value="true"
+                               class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition duration-150 ease-in-out cursor-pointer">
+                    </label>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 表單提交處理
+    const form = document.getElementById('attendanceForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const date = formData.get('date');
+        const attendance = {};
+        
+        // 收集所有出席資料
+        document.querySelectorAll('#membersTableBody input[type="checkbox"]').forEach(checkbox => {
+            const [_, userId, meetingType] = checkbox.name.match(/attendance\[(\d+)\]\[(\w+)\]/);
+            if (!attendance[userId]) {
+                attendance[userId] = {};
+            }
+            attendance[userId][meetingType] = checkbox.checked;
+        });
+        
+        try {
+            const response = await fetch('/attendance/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date,
+                    attendance
+                })
+            });
+            
+            if (response.ok) {
+                alert('出席記錄已成功提交！');
+                form.reset();
+                document.getElementById('membersList').classList.add('hidden');
+            } else {
+                const error = await response.json();
+                alert(`提交失敗：${error.detail || '未知錯誤'}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('操作時發生錯誤，請稍後再試。');
+        }
+    });
+
+    // 工具函數
+    function populateSelect(select, items) {
+        select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.unit_name;
+            select.appendChild(option);
+        });
+    }
+
+    function resetSelect(select) {
+        select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+        select.disabled = true;
+    }
+
+    // 初始化載入
+    loadBranches();
+</script>
+{% endblock %}

@@ -7,4 +7,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REDIS_URL: str = "redis://user-cache:6379/0"
 
+    class Config:
+        env_file = ".env"
+
 settings = Settings()

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="main-content">
+    <div class="form-container">
+        <h1 style="margin-bottom: 2rem; text-align: center;">更新組織單位</h1>
+
+        <form id="update_form" novalidate>
+            <div class="form-group">
+                <label>選擇要更新的組織單位</label>
+                <div class="search-select-container">
+                    <input type="text" id="org_search" class="search-input" placeholder="搜尋組織單位...">
+                    <div id="org_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇要更新的組織單位</div>
+            </div>
+
+            <div class="form-group">
+                <label>單位名稱</label>
+                <input type="text" id="unit_name" name="unit_name" required>
+                <div class="error">請輸入組織單位名稱</div>
+            </div>
+
+            <div class="form-group">
+                <label>組織類別</label>
+                <select id="organization_category" name="organization_category" required>
+                    <option value="">請選擇類別</option>
+                </select>
+                <div class="error">請選擇組織類別</div>
+            </div>
+
+            <div class="form-group">
+                <label>上層單位</label>
+                <div class="search-select-container">
+                    <input type="text" id="parent_search" class="search-input" placeholder="搜尋上層單位...">
+                    <div id="parent_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇上層單位</div>
+            </div>
+
+            <div class="form-group">
+                <label>領袖</label>
+                <div class="search-select-container">
+                    <input type="text" id="leader_search" class="search-input" placeholder="搜尋領袖...">
+                    <div id="leader_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇領袖</div>
+            </div>
+
+            <button type="submit">更新</button>
+        </form>
+    </div>
+</main>
+
+<script>
+    const categorySelect = document.getElementById('organization_category');
+
+    // API 數據獲取函數
+    async function fetchOrganizationUnits() {
+        try {
+            const response = await fetch('/organization-units/');
+            if (!response.ok) throw new Error('Failed to fetch organization units');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching organization units:', error);
+            return [];
+        }
+    }
+
+    async function fetchLeaders() {
+        try {
+            const response = await fetch('/users/');
+            if (!response.ok) throw new Error('Failed to fetch leaders');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching leaders:', error);
+            return [];
+        }
+    }
+
+    // 載入組織類別選項
+    async function loadCategories() {
+            try {
+                const response = await fetch('/organization-categories/');
+                const categories = await response.json();
+                
+                categorySelect.innerHTML = '<option value="" disabled selected>請選擇類別</option>';
+                categories.items.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.category_name;
+                    categorySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+    // 初始化搜尋下拉選單
+    function initializeSearchSelect(inputId, dropdownId, data, displayKey, valueKey, onSelect) {
+        const input = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+        let selectedItem = null;
+
+        // 添加一個方法來設置選中的值
+        const setSelected = (item) => {
+            selectedItem = item;
+            if (item) {
+                input.value = item[displayKey];
+            }
+        };
+
+        input.addEventListener('input', () => {
+            const searchText = input.value.toLowerCase();
+            const filtered = data.filter(item => 
+                item[displayKey].toLowerCase().includes(searchText)
+            );
+
+            dropdown.innerHTML = filtered.map(item => `
+                <div class="select-option" data-id="${item[valueKey]}">
+                    ${item[displayKey]}
+                </div>
+            `).join('');
+
+            dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+        });
+
+        dropdown.addEventListener('click', (e) => {
+            const option = e.target.closest('.select-option');
+            if (option) {
+                const id = option.dataset.id;
+                const selected = data.find(item => item[valueKey].toString() === id);
+                setSelected(selected);
+                dropdown.style.display = 'none';
+                if (onSelect) onSelect(selected);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        return {
+            getSelected: () => selectedItem,
+            setSelected: setSelected,  // 新增 setSelected 方法
+            clearSelected: () => {
+                selectedItem = null;
+                input.value = '';
+            }
+        };
+    }
+
+    // 修改組織單位選擇的回調函數
+    document.addEventListener('DOMContentLoaded', async () => {
+        let organizationUnits = [];
+        let leaders = [];
+        let selectedOrg = null;
+        let orgSelector, parentSelector, leaderSelector;
+
+        try {
+            organizationUnits = await fetchOrganizationUnits();
+            leaders = await fetchLeaders();
+            loadCategories();
+
+            orgSelector = initializeSearchSelect(
+                'org_search', 
+                'org_dropdown', 
+                organizationUnits, 
+                'unit_name', 
+                'id',
+                (org) => {
+                    selectedOrg = org;
+                    document.getElementById('unit_name').value = org.unit_name;
+                    document.getElementById('organization_category').value = org.category_id;
+                    
+                    // 使用新的 setSelected 方法設置上層單位
+                    const parentUnit = organizationUnits.find(unit => unit.id === org.parent_unit_id);
+                    if (parentUnit) {
+                        parentSelector.setSelected(parentUnit);
+                    } else {
+                        parentSelector.clearSelected();
+                    }
+
+                    // 使用新的 setSelected 方法設置領袖
+                    const leader = leaders.find(user => user.id === org.leader_id);
+                    if (leader) {
+                        leaderSelector.setSelected(leader);
+                    } else {
+                        leaderSelector.clearSelected();
+                    }
+                }
+            );
+
+            parentSelector = initializeSearchSelect(
+                'parent_search', 
+                'parent_dropdown', 
+                organizationUnits, 
+                'unit_name', 
+                'id'
+            );
+
+            leaderSelector = initializeSearchSelect(
+                'leader_search', 
+                'leader_dropdown', 
+                leaders, 
+                'name', 
+                'id'
+            );
+
+        } catch (error) {
+            console.error('Error initializing form:', error);
+            alert('載入資料時發生錯誤，請重新整理頁面。');
+        }
+
+        // 表單提交處理
+        const form = document.getElementById('update_form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedOrg) {
+                alert('請先選擇要更新的組織單位');
+                return;
+            }
+
+            const parent = parentSelector.getSelected();
+            const leader = leaderSelector.getSelected();
+
+            const formData = {
+                unit_name: document.getElementById('unit_name').value,
+                category_id: parseInt(document.getElementById('organization_category').value),
+                parent_unit_id: parent ? parent.id : null,
+                leader_id: leader ? leader.id : null
+            };
+
+            try {
+                const response = await fetch(`/organization-units/${selectedOrg.id}/update`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('更新成功！');
+                    location.reload(); // 重新載入頁面以更新數據
+                } else {
+                    const error = await response.json();
+                    alert(`更新失敗：${error.message}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('更新時發生錯誤，請稍後再試。');
+            }
+        });
+    });
+</script>
+{% endblock %}

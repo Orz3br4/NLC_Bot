@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+
+            <!-- 用戶搜索區域 -->
+            <div class="form-group">
+                <label>選擇要更新的使用者</label>
+                <div class="search-select-container">
+                    <input type="text" id="user_search" class="search-input" placeholder="搜尋使用者...">
+                    <div id="user_dropdown" class="select-dropdown"></div>
+                </div>
+                <div class="error">請選擇要更新的使用者</div>
+            </div>
+
+            <form id="updateForm" novalidate>
+                <!-- 原有的個人資訊欄位 -->
+                <div class="form-group">
+                    <label for="name" class="required">姓名</label>
+                    <input type="text" id="name" name="name" required>
+                    <div class="error">請輸入真實姓名</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" name="email">
+                    <div class="error">請輸入有效的電子郵件地址</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthday">生日</label>
+                    <input type="date" id="birthday" name="birthday">
+                    <div class="error">請選擇生日日期</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile_number">手機號碼</label>
+                    <input type="tel" id="mobile_number" name="mobile_number" pattern="^09\d{8}$">
+                    <div class="error">請輸入有效的台灣手機號碼（格式：09xxxxxxxx）</div>
+                </div>
+
+                <!-- 新增組織選擇區域 -->
+                <div class="organization-section">
+                    <div class="form-group">
+                        <label for="branch">分堂</label>
+                        <select id="branch" name="branch">
+                            <option value="" disabled selected>請選擇分堂</option>
+                        </select>
+                        <div class="error">請選擇分堂</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="district">小區</label>
+                        <select id="district" name="district" disabled>
+                            <option value="" disabled selected>請選擇小區</option>
+                        </select>
+                        <div class="error">請選擇小區</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="group">小組</label>
+                        <select id="group" name="group" disabled>
+                            <option value="" disabled selected>請選擇小組</option>
+                        </select>
+                        <div class="error">請選擇小組</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ekk">EKK</label>
+                        <select id="ekk" name="ekk" disabled>
+                            <option value="" disabled selected>請選擇EKK</option>
+                        </select>
+                        <div class="error">請選擇EKK</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="level" class="required">靈程</label>
+                    <select id="level" name="level" required>
+                        <option value="" disabled selected>請選擇靈程</option>
+                        <option value="基督徒">基督徒</option>
+                        <option value="慕道友">慕道友</option>
+                        <option value="新朋友">新朋友</option>
+                    </select>
+                    <div class="error">請選擇靈程</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role" class="required">教會職分</label>
+                    <select id="role" name="role" required>
+                        <option value="" disabled selected>請選擇職分</option>
+                        <option value="會友">會友</option>
+                        <option value="小家長">小家長</option>
+                        <option value="小組長">小組長</option>
+                        <option value="區長">區長</option>
+                        <option value="分堂領袖">分堂領袖</option>
+                        <option value="牧師">牧師</option>
+                        <option value="傳道">傳道</option>
+                    </select>
+                    <div class="error">請選擇教會職分</div>
+                </div>
+
+                <button type="submit">更新</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        let selectedUser = null;
+        const organizationSelects = {
+            branch: document.getElementById('branch'),
+            district: document.getElementById('district'),
+            group: document.getElementById('group'),
+            ekk: document.getElementById('ekk')
+        };
+
+        const categoryMap = {
+            branch: 1,
+            district: 2,
+            group: 3,
+            ekk: 4
+        };
+
+        // 初始化搜尋下拉選單
+        function initializeSearchSelect(inputId, dropdownId, data, displayKey, valueKey, onSelect) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+
+            input.addEventListener('input', () => {
+                const searchText = input.value.toLowerCase();
+                const filtered = data.filter(item => 
+                    item[displayKey].toLowerCase().includes(searchText)
+                );
+
+                dropdown.innerHTML = filtered.map(item => `
+                    <div class="select-option" data-id="${item[valueKey]}">
+                        ${item[displayKey]}
+                    </div>
+                `).join('');
+
+                dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+            });
+
+            dropdown.addEventListener('click', async (e) => {
+                const option = e.target.closest('.select-option');
+                if (option) {
+                    const id = option.dataset.id;
+                    const selected = data.find(item => item.id.toString() === id);
+                    if (onSelect) {
+                        await onSelect(selected);
+                        input.value = selected[displayKey];
+                    }
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // 工具函數
+        function populateSelect(select, items) {
+            select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.unit_name;
+                select.appendChild(option);
+            });
+        }
+
+        function resetSelect(select) {
+            select.innerHTML = '<option value="" disabled selected>請選擇</option>';
+            select.disabled = true;
+        }
+
+        // 初始化載入分堂資料
+        async function loadBranches() {
+            try {
+                const response = await fetch(`/organization-units/by-category/${categoryMap.branch}`);
+                const branches = await response.json();
+                populateSelect(organizationSelects.branch, branches);
+            } catch (error) {
+                console.error('Error loading branches:', error);
+            }
+        }
+
+        // 級聯選單事件處理
+        organizationSelects.branch.addEventListener('change', async () => {
+            const branchId = organizationSelects.branch.value;
+            resetSelect(organizationSelects.district);
+            resetSelect(organizationSelects.group);
+            resetSelect(organizationSelects.ekk);
+            
+            if (branchId) {
+                organizationSelects.district.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
+                    const districts = await response.json();
+                    populateSelect(organizationSelects.district, districts);
+                } catch (error) {
+                    console.error('Error loading districts:', error);
+                }
+            }
+        });
+
+        organizationSelects.district.addEventListener('change', async () => {
+            const districtId = organizationSelects.district.value;
+            resetSelect(organizationSelects.group);
+            resetSelect(organizationSelects.ekk);
+            
+            if (districtId) {
+                organizationSelects.group.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${districtId}`);
+                    const groups = await response.json();
+                    populateSelect(organizationSelects.group, groups);
+                } catch (error) {
+                    console.error('Error loading groups:', error);
+                }
+            }
+        });
+
+        organizationSelects.group.addEventListener('change', async () => {
+            const groupId = organizationSelects.group.value;
+            resetSelect(organizationSelects.ekk);
+            
+            if (groupId) {
+                organizationSelects.ekk.disabled = false;
+                try {
+                    const response = await fetch(`/organization-units/by-parent-unit/${groupId}`);
+                    const ekks = await response.json();
+                    populateSelect(organizationSelects.ekk, ekks);
+                } catch (error) {
+                    console.error('Error loading ekks:', error);
+                }
+            }
+        });
+
+        // 當選擇用戶時載入其組織資訊
+        async function loadUserOrganizationInfo(userId) {
+            try {
+                const response = await fetch(`/users/${userId}/organization-units`);
+                const units = await response.json();
+                
+                // 重置所有選擇
+                for (let select of Object.values(organizationSelects)) {
+                    resetSelect(select);
+                }
+
+                if (units.length > 0) {
+                    // 找到最底層的單位（category_id 最大的）
+                    const lowestUnit = units.reduce((lowest, current) => 
+                        current.category_id > lowest.category_id ? current : lowest
+                    );
+
+                    // 獲取完整的組織層級結構
+                    const hierarchyResponse = await fetch(`/organization-units/hierarchy-up/${lowestUnit.id}`);
+                    const hierarchy = await hierarchyResponse.json();
+
+                    // 按照類別ID對單位進行分類
+                    const unitsByCategory = hierarchy.reduce((acc, unit) => {
+                        acc[unit.category_id] = unit;
+                        return acc;
+                    }, {});
+
+                    // 逐級載入組織資訊
+                    await loadBranches();
+                    const branchUnit = unitsByCategory[categoryMap.branch];
+                    if (branchUnit) {
+                        organizationSelects.branch.value = branchUnit.id;
+                        organizationSelects.branch.disabled = false;
+
+                        const districtUnit = unitsByCategory[categoryMap.district];
+                        if (districtUnit) {
+                            const districtResponse = await fetch(`/organization-units/by-parent-unit/${branchUnit.id}`);
+                            const districts = await districtResponse.json();
+                            populateSelect(organizationSelects.district, districts);
+                            organizationSelects.district.value = districtUnit.id;
+                            organizationSelects.district.disabled = false;
+
+                            const groupUnit = unitsByCategory[categoryMap.group];
+                            if (groupUnit) {
+                                const groupResponse = await fetch(`/organization-units/by-parent-unit/${districtUnit.id}`);
+                                const groups = await groupResponse.json();
+                                populateSelect(organizationSelects.group, groups);
+                                organizationSelects.group.value = groupUnit.id;
+                                organizationSelects.group.disabled = false;
+
+                                const ekkUnit = unitsByCategory[categoryMap.ekk];
+                                if (ekkUnit) {
+                                    const ekkResponse = await fetch(`/organization-units/by-parent-unit/${groupUnit.id}`);
+                                    const ekks = await ekkResponse.json();
+                                    populateSelect(organizationSelects.ekk, ekks);
+                                    organizationSelects.ekk.value = ekkUnit.id;
+                                    organizationSelects.ekk.disabled = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user organization info:', error);
+            }
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 載入使用者資料
+                const response = await fetch('/users/');
+                const users = await response.json();
+
+                // 初始化使用者搜尋
+                // 先載入分堂資料
+                await loadBranches();
+
+                // 初始化使用者搜尋
+                initializeSearchSelect(
+                    'user_search',
+                    'user_dropdown',
+                    users,
+                    'name',
+                    'id',
+                    async (user) => {
+                        selectedUser = user;
+                        // 填充表單資料
+                        document.getElementById('name').value = user.name || '';
+                        document.getElementById('email').value = user.email || '';
+                        document.getElementById('birthday').value = user.birthday || '';
+                        document.getElementById('mobile_number').value = user.mobile_number || '';
+                        document.getElementById('level').value = user.level || '';
+                        document.getElementById('role').value = user.role || '';
+
+                        // 載入用戶的組織資訊
+                        await loadUserOrganizationInfo(user.id);
+                    }
+                );
+
+            } catch (error) {
+                console.error('Error initializing form:', error);
+                alert('載入資料時發生錯誤，請重新整理頁面。');
+            }
+        });
+
+        // 表單提交處理
+        const form = document.getElementById('updateForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedUser) {
+                alert('請先選擇要更新的使用者');
+                return;
+            }
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const formUserData = {};
+            const organizationData = {
+                user_id: selectedUser.id,
+                unit_id: null
+            };
+
+            // 清理表單數據
+            for (let [key, value] of formData.entries()) {
+                if (value !== '') {
+                    if (!['branch', 'district', 'group', 'ekk'].includes(key)) {
+                        formUserData[key] = value;
+                    }
+                }
+            }
+
+            // 決定最終的組織單位ID
+            if (formData.get('ekk')) {
+                organizationData.unit_id = formData.get('ekk');
+            } else if (formData.get('group')) {
+                organizationData.unit_id = formData.get('group');
+            } else if (formData.get('district')) {
+                organizationData.unit_id = formData.get('district');
+            } else if (formData.get('branch')) {
+                organizationData.unit_id = formData.get('branch');
+            }
+
+            try {
+                // 更新用戶資料
+                const userResponse = await fetch(`/user/${selectedUser.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formUserData)
+                });
+
+                if (userResponse.ok && organizationData.unit_id) {
+                    // 如果用戶更新成功且有選擇組織，則更新用戶-組織關聯
+                    const orgResponse = await fetch('/user-organization-units/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(organizationData)
+                    });
+
+                    if (orgResponse.ok) {
+                        alert('用戶資料和組織關係更新成功！');
+                        location.reload();
+                    } else {
+                        const orgError = await orgResponse.json();
+                        alert(`組織關聯更新失敗：${orgError.detail || '未知錯誤'}`);
+                    }
+                } else if (userResponse.ok) {
+                    alert('用戶資料更新成功！');
+                    location.reload();
+                } else {
+                    const error = await userResponse.json();
+                    alert(`用戶資料更新失敗：${error.detail || '未知錯誤'}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('更新時發生錯誤，請稍後再試。');
+            }
+        });
+
+        // 表單驗證
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+    </script>
+{% endblock %}

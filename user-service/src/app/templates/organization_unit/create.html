@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+            <form id="unitForm" novalidate>
+                <div class="form-group">
+                    <label for="unit_name" class="required">單位名稱</label>
+                    <input 
+                        type="text" 
+                        id="unit_name" 
+                        name="unit_name" 
+                        required
+                    >
+                    <div class="error">請輸入組織單位名稱</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="category_id" class="required">組織類別</label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="" disabled selected>請選擇類別</option>
+                    </select>
+                    <div class="error">請選擇組織類別</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="parent_unit_id">上層單位</label>
+                    <select id="parent_unit_id" name="parent_unit_id">
+                        <option value="" disabled selected>請選擇上層單位</option>
+                    </select>
+                    <div class="error">請選擇上層單位</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="leader_id">領袖</label>
+                    <select id="leader_id" name="leader_id">
+                        <option value="" disabled selected>請選擇領袖</option>
+                    </select>
+                    <div class="error">請選擇領袖</div>
+                </div>
+
+                <button type="submit">新增</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById('unitForm');
+        const categorySelect = document.getElementById('category_id');
+        const parentUnitSelect = document.getElementById('parent_unit_id');
+        const leaderSelect = document.getElementById('leader_id');
+
+        // 載入組織類別選項
+        async function loadCategories() {
+            try {
+                const response = await fetch('/organization-categories/');
+                const categories = await response.json();
+                
+                categorySelect.innerHTML = '<option value="" disabled selected>請選擇類別</option>';
+                categories.items.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.category_name;
+                    categorySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // 載入上層單位選項
+        async function loadParentUnits(categoryId) {
+            try {
+                const response = await fetch(`/organization-units/by-parent-category/${categoryId}`);
+                const units = await response.json();
+                
+                parentUnitSelect.innerHTML = '<option value="" disabled selected>請選擇上層單位</option>';
+                units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = unit.unit_name;
+                    parentUnitSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading parent units:', error);
+            }
+        }
+
+        // 載入領袖選項
+        async function loadLeaders() {
+            try {
+                const response = await fetch('/users/');
+                const users = await response.json();
+                
+                leaderSelect.innerHTML = '<option value="" disabled selected>請選擇領袖</option>';
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    leaderSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading leaders:', error);
+            }
+        }
+
+        // 當類別改變時載入對應的上層單位
+        categorySelect.addEventListener('change', () => {
+            if (categorySelect.value) {
+                loadParentUnits(categorySelect.value);
+            }
+        });
+
+        // 頁面載入時載入所需資料
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCategories();
+            loadLeaders();
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const unitData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/organization-unit/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(unitData)
+                });
+
+                if (response.ok) {
+                    alert('組織單位建立成功！');
+                    form.reset();
+                    // 可以選擇重定向到列表頁面
+                    // window.location.href = '/organization-units/';
+                } else {
+                    const error = await response.json();
+                    alert(`建立失敗：${error.detail}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('建立時發生錯誤，請稍後再試。');
+            }
+        });
+
+        // 即時驗證
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+    </script>
+{% endblock %}
