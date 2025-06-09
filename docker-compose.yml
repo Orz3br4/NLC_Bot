@@ -2,11 +2,9 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
-      - "443:443"  # 添加 HTTPS 端口
+      - "80:80"  # 只需要 HTTP，SSL 由 Cloudflare 處理
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl  # SSL 憑證目錄
     depends_on:
       - user-service
     networks:
