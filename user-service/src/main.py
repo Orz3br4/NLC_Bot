@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import os
 from app.routes import api
 from app.models import Base
 from app.database import engine
@@ -20,7 +21,7 @@ app.add_middleware(
 )
 
 # 設置靜態檔案目錄
-app.mount("/assets", StaticFiles(directory="src/assets"), name="assets")
+app.mount("/assets", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "assets")), name="assets")
 
 app.include_router(api.router)
 

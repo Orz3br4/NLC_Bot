@@ -3,21 +3,11 @@
 {% block content %}
     <main class="main-content">
         <div class="form-container">
-            <h1 style="margin-bottom: 2rem; text-align: center;">組織出席統計</h1>
-
-            <!-- 組織選擇區域 -->
+            <h1 style="margin-bottom: 2rem; text-align: center;">組織出席統計</h1>            <!-- 組織選擇區域 -->
             <div class="organization-section">
                 <div class="form-group">
-                    <label for="branch">分堂</label>
-                    <select id="branch" name="branch">
-                        <option value="" disabled selected>請選擇分堂</option>
-                    </select>
-                    <div class="error">請選擇分堂</div>
-                </div>
-
-                <div class="form-group">
                     <label for="district">小區</label>
-                    <select id="district" name="district" disabled>
+                    <select id="district" name="district">
                         <option value="" disabled selected>請選擇小區</option>
                     </select>
                     <div class="error">請選擇小區</div>
@@ -124,29 +114,26 @@
         </div>
     </main>
 
-    <script>
-        const organizationSelects = {
-            branch: document.getElementById('branch'),
+    <script>        const organizationSelects = {
             district: document.getElementById('district'),
             group: document.getElementById('group'),
             ekk: document.getElementById('ekk')
         };
 
         const categoryMap = {
-            branch: 1,
             district: 2,
             group: 3,
             ekk: 4
         };
 
-        // 初始化載入分堂資料
-        async function loadBranches() {
+        // 初始化載入小區資料
+        async function loadDistricts() {
             try {
-                const response = await fetch(`/organization-units/by-category/${categoryMap.branch}`);
-                const branches = await response.json();
-                populateSelect(organizationSelects.branch, branches);
+                const response = await fetch(`/organization-units/by-category/${categoryMap.district}`);
+                const districts = await response.json();
+                populateSelect(organizationSelects.district, districts);
             } catch (error) {
-                console.error('Error loading branches:', error);
+                console.error('Error loading districts:', error);
             }
         }
 
@@ -172,27 +159,7 @@
                 month: 'long',
                 day: 'numeric'
             });
-        }
-
-        // 級聯選單事件處理
-        organizationSelects.branch.addEventListener('change', async () => {
-            const branchId = organizationSelects.branch.value;
-            resetSelect(organizationSelects.district);
-            resetSelect(organizationSelects.group);
-            resetSelect(organizationSelects.ekk);
-            
-            if (branchId) {
-                organizationSelects.district.disabled = false;
-                try {
-                    const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
-                    const districts = await response.json();
-                    populateSelect(organizationSelects.district, districts);
-                } catch (error) {
-                    console.error('Error loading districts:', error);
-                }
-            }
-        });
-
+        }        // 級聯選單事件處理
         organizationSelects.district.addEventListener('change', async () => {
             const districtId = organizationSelects.district.value;
             resetSelect(organizationSelects.group);
@@ -271,15 +238,12 @@
                 console.error('Error loading attendance report:', error);
                 alert('載入出席報表時發生錯誤，請稍後再試。');
             }
-        }
-
-        // 查詢按鈕事件處理
+        }        // 查詢按鈕事件處理
         document.getElementById('searchBtn').addEventListener('click', () => {
             // 獲取選擇的最後一個組織單位ID
             let selectedUnitId = organizationSelects.ekk.value || 
                                organizationSelects.group.value || 
-                               organizationSelects.district.value || 
-                               organizationSelects.branch.value;
+                               organizationSelects.district.value;
 
             if (!selectedUnitId) {
                 alert('請選擇要查詢的組織單位');
@@ -291,6 +255,6 @@
         });
 
         // 初始化載入
-        loadBranches();
+        loadDistricts();
     </script>
 {% endblock %}

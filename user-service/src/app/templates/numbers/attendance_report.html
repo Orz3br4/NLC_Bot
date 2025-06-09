@@ -11,20 +11,11 @@
                 <label for="date" class="required">日期</label>
                 <input type="date" id="date" name="date" required>
                 <div class="error">請選擇日期</div>
-            </div>
-
-            <!-- 組織選擇區域 -->
+            </div>            <!-- 組織選擇區域 -->
             <div class="organization-section">
                 <div class="form-group">
-                    <label for="branch">分堂</label>
-                    <select id="branch" name="branch">
-                        <option value="" disabled selected>請選擇分堂</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
                     <label for="district">小區</label>
-                    <select id="district" name="district" disabled>
+                    <select id="district" name="district">
                         <option value="" disabled selected>請選擇小區</option>
                     </select>
                 </div>
@@ -70,52 +61,28 @@
     </div>
 </main>
 
-<script>
-    const organizationSelects = {
-        branch: document.getElementById('branch'),
+<script>    const organizationSelects = {
         district: document.getElementById('district'),
         group: document.getElementById('group'),
         ekk: document.getElementById('ekk')
     };
 
     const categoryMap = {
-        branch: 1,
         district: 2,
         group: 3,
         ekk: 4
     };
 
-    // 初始化載入分堂資料
-    async function loadBranches() {
+    // 初始化載入小區資料
+    async function loadDistricts() {
         try {
-            const response = await fetch(`/organization-units/by-category/${categoryMap.branch}`);
-            const branches = await response.json();
-            populateSelect(organizationSelects.branch, branches);
+            const response = await fetch(`/organization-units/by-category/${categoryMap.district}`);
+            const districts = await response.json();
+            populateSelect(organizationSelects.district, districts);
         } catch (error) {
-            console.error('Error loading branches:', error);
+            console.error('Error loading districts:', error);
         }
-    }
-
-    // 處理級聯選單事件
-    organizationSelects.branch.addEventListener('change', async () => {
-        const branchId = organizationSelects.branch.value;
-        resetSelect(organizationSelects.district);
-        resetSelect(organizationSelects.group);
-        resetSelect(organizationSelects.ekk);
-        document.getElementById('membersList').classList.add('hidden');
-        
-        if (branchId) {
-            organizationSelects.district.disabled = false;
-            try {
-                const response = await fetch(`/organization-units/by-parent-unit/${branchId}`);
-                const districts = await response.json();
-                populateSelect(organizationSelects.district, districts);
-            } catch (error) {
-                console.error('Error loading districts:', error);
-            }
-        }
-    });
-
+    }    // 處理級聯選單事件
     organizationSelects.district.addEventListener('change', async () => {
         const districtId = organizationSelects.district.value;
         resetSelect(organizationSelects.group);
@@ -151,11 +118,9 @@
         }
     });
 
-    organizationSelects.ekk.addEventListener('change', async () => {
-        const unitId = organizationSelects.ekk.value || 
+    organizationSelects.ekk.addEventListener('change', async () => {        const unitId = organizationSelects.ekk.value || 
                       organizationSelects.group.value || 
-                      organizationSelects.district.value || 
-                      organizationSelects.branch.value;
+                      organizationSelects.district.value;
         
         if (unitId) {
             try {
@@ -257,9 +222,7 @@
     function resetSelect(select) {
         select.innerHTML = '<option value="" disabled selected>請選擇</option>';
         select.disabled = true;
-    }
-
-    // 初始化載入
-    loadBranches();
+    }    // 初始化載入
+    loadDistricts();
 </script>
 {% endblock %}

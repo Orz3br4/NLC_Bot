@@ -23,7 +23,6 @@ class UserRole(str, Enum):
     EKK_LEADER = "小家長"
     GROUP_LEADER = "小組長"
     DISTRICT_LEADER = "區長"
-    BRANCH_LEADER = "分堂領袖"
     PASTOR = "牧師"
     MINISTER = "傳道"
 

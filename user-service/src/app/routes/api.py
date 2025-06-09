@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import logging
+import os
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -13,8 +14,8 @@ from app.schemas import AttendanceStats, PaginatedResponse, WeeklyAttendanceRepo
 
 router = APIRouter()
 
-# Set template directory
-templates = Jinja2Templates(directory="src/app/templates")
+# Set template directory with absolute path
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "app", "templates"))
 
 logger = logging.getLogger(__name__)
 
@@ -360,7 +361,7 @@ async def get_organization_hierarchy(
 @router.get("/organization-units/hierarchy-up/{unit_id}", response_model=List[schemas.OrganizationUnitInDB])
 async def get_unit_hierarchy_up(unit_id: int, db: Session = Depends(get_db)):
     """
-    Get the complete hierarchy from a unit up to the branch level
+    Get the complete hierarchy from a unit up to the district level
     
     Args:
         unit_id: ID of the starting unit
