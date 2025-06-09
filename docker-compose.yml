@@ -2,7 +2,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "80:80"  # 只需要 HTTP，SSL 由 Cloudflare 處理
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
@@ -15,17 +15,16 @@ services:
       context: .
       dockerfile: user-service/Dockerfile
     volumes:
-      - ./user-service/src:/app/src  # 將本地的 src 目錄掛載到容器中
+      - ./user-service/src:/app/src
     environment:
       - PYTHONPATH=/app/src
       - DATABASE_URL=postgresql://user:userpass@user-db/userdb
       - REDIS_URL=redis://user-cache:6379/0
       - SECRET_KEY=dev-secret-key
-      - DEBUG=1
-      - CORS_ORIGINS=["http://localhost", "http://localhost:3000"]
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
-    ports:
-      - "8000:8000"
+      - DEBUG=0  # 生產環境建議關閉 DEBUG
+      - CORS_ORIGINS=["https://tynlc.com", "https://www.tynlc.com", "http://tynlc.com", "http://www.tynlc.com"]
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    # 移除 ports 暴露，只透過 nginx 存取
     depends_on:
       - user-db
       - user-cache
@@ -53,8 +52,7 @@ services:
       - POSTGRES_DB=userdb
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=userpass
-    ports:
-      - "5432:5432"
+    # 移除端口暴露，增加安全性
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -62,8 +60,7 @@ services:
 
   user-cache:
     image: redis:alpine
-    ports:
-      - "6379:6379"
+    # 移除端口暴露，增加安全性
     volumes:
       - redis_data:/data
     networks:
@@ -75,7 +72,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"  # 限制只能從本機存取
     depends_on:
       - user-db
     networks:
