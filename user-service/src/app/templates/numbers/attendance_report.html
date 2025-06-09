@@ -11,7 +11,9 @@
                 <label for="date" class="required">日期</label>
                 <input type="date" id="date" name="date" required>
                 <div class="error">請選擇日期</div>
-            </div>            <!-- 組織選擇區域 -->
+            </div>
+
+            <!-- 組織選擇區域 -->
             <div class="organization-section">
                 <div class="form-group">
                     <label for="district">小區</label>
@@ -61,7 +63,8 @@
     </div>
 </main>
 
-<script>    const organizationSelects = {
+<script>
+    const organizationSelects = {
         district: document.getElementById('district'),
         group: document.getElementById('group'),
         ekk: document.getElementById('ekk')
@@ -82,7 +85,26 @@
         } catch (error) {
             console.error('Error loading districts:', error);
         }
-    }    // 處理級聯選單事件
+    }
+
+    // 載入成員名單的共用函數
+    async function loadMembers(unitId) {
+        if (unitId) {
+            try {
+                const response = await fetch(`/organization-units/${unitId}/members`);
+                const members = await response.json();
+                populateMembersList(members);
+                document.getElementById('membersList').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading members:', error);
+                document.getElementById('membersList').classList.add('hidden');
+            }
+        } else {
+            document.getElementById('membersList').classList.add('hidden');
+        }
+    }
+
+    // 處理級聯選單事件
     organizationSelects.district.addEventListener('change', async () => {
         const districtId = organizationSelects.district.value;
         resetSelect(organizationSelects.group);
@@ -104,9 +126,9 @@
     organizationSelects.group.addEventListener('change', async () => {
         const groupId = organizationSelects.group.value;
         resetSelect(organizationSelects.ekk);
-        document.getElementById('membersList').classList.add('hidden');
         
         if (groupId) {
+            // 載入EKK選項
             organizationSelects.ekk.disabled = false;
             try {
                 const response = await fetch(`/organization-units/by-parent-unit/${groupId}`);
@@ -115,22 +137,24 @@
             } catch (error) {
                 console.error('Error loading ekks:', error);
             }
+            
+            // 載入小組的成員名單
+            await loadMembers(groupId);
+        } else {
+            document.getElementById('membersList').classList.add('hidden');
         }
     });
 
-    organizationSelects.ekk.addEventListener('change', async () => {        const unitId = organizationSelects.ekk.value || 
-                      organizationSelects.group.value || 
-                      organizationSelects.district.value;
+    organizationSelects.ekk.addEventListener('change', async () => {
+        const ekkId = organizationSelects.ekk.value;
         
-        if (unitId) {
-            try {
-                const response = await fetch(`/organization-units/${unitId}/members`);
-                const members = await response.json();
-                populateMembersList(members);
-                document.getElementById('membersList').classList.remove('hidden');
-            } catch (error) {
-                console.error('Error loading members:', error);
-            }
+        if (ekkId) {
+            // 如果選擇了EKK，載入EKK的成員名單
+            await loadMembers(ekkId);
+        } else {
+            // 如果沒有選擇EKK，回到載入小組的成員名單
+            const groupId = organizationSelects.group.value;
+            await loadMembers(groupId);
         }
     });
 
@@ -222,7 +246,9 @@
     function resetSelect(select) {
         select.innerHTML = '<option value="" disabled selected>請選擇</option>';
         select.disabled = true;
-    }    // 初始化載入
+    }
+
+    // 初始化載入
     loadDistricts();
 </script>
 {% endblock %}
