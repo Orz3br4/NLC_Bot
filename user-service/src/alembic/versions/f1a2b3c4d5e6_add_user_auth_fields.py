@@ -1,6 +1,6 @@
 """Add user authentication fields
 
-Revision ID: add_user_auth_fields
+Revision ID: f1a2b3c4d5e6
 Revises: e565c0452c62
 Create Date: 2024-01-01 00:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'add_user_auth_fields'
+revision = 'f1a2b3c4d5e6'
 down_revision = 'e565c0452c62'
 branch_labels = None
 depends_on = None
