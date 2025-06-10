@@ -146,6 +146,7 @@ class AttendanceStats(BaseModel):
     new_friend_count: int
     total_count: int
     attendees: List[Dict]
+    absent: List[Dict]
 
     class Config:
         from_attributes = True

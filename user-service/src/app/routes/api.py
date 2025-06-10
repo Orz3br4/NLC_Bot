@@ -762,7 +762,8 @@ def read_weekly_attendance_report_by_unit(
             "vip_count": 0,
             "new_friend_count": 0,
             "total_count": 0,
-            "attendees": []
+            "attendees": [],
+            "absent": []
         }
         
         group_stats = {
@@ -770,7 +771,8 @@ def read_weekly_attendance_report_by_unit(
             "vip_count": 0,
             "new_friend_count": 0,
             "total_count": 0,
-            "attendees": []
+            "attendees": [],
+            "absent": []
         }
 
         unique_stats = {
@@ -778,7 +780,8 @@ def read_weekly_attendance_report_by_unit(
             "vip_count": 0,
             "new_friend_count": 0,
             "total_count": 0,
-            "attendees": []
+            "attendees": [],
+            "absent": []
         }
         
         # Get attendance records for the week
@@ -819,6 +822,25 @@ def read_weekly_attendance_report_by_unit(
             if attendee_info not in stats["attendees"]:
                 stats["attendees"].append(attendee_info)
         
+        # Calculate absent members for each meeting type
+        sunday_attendee_ids = [a["id"] for a in sunday_stats["attendees"]]
+        group_attendee_ids = [a["id"] for a in group_stats["attendees"]]
+        
+        for member in unit_members:
+            member_info = {
+                "id": member.id,
+                "name": member.name,
+                "level": member.level
+            }
+            
+            # Check Sunday service attendance
+            if member.id not in sunday_attendee_ids:
+                sunday_stats["absent"].append(member_info)
+                
+            # Check group meeting attendance
+            if member.id not in group_attendee_ids:
+                group_stats["absent"].append(member_info)
+
         # Calculate unique attendees
         for attendee in sunday_stats["attendees"]:
             if attendee not in unique_stats["attendees"]:
@@ -839,6 +861,17 @@ def read_weekly_attendance_report_by_unit(
                     unique_stats["vip_count"] += 1
                 elif attendee["level"] == schemas.UserLevel.NEW_FRIEND:
                     unique_stats["new_friend_count"] += 1
+                    
+        # Calculate unique absent members
+        all_attendee_ids = list(set(sunday_attendee_ids + group_attendee_ids))
+        for member in unit_members:
+            if member.id not in all_attendee_ids:
+                member_info = {
+                    "id": member.id,
+                    "name": member.name,
+                    "level": member.level
+                }
+                unique_stats["absent"].append(member_info)
         
         return WeeklyAttendanceReport(
             sunday_service=AttendanceStats(**sunday_stats),

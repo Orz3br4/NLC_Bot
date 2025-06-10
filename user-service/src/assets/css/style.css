@@ -85,6 +85,78 @@ body {
     background-color: #f9f9f9;
 }
 
+.attendance-details {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.attendance-list {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.attendance-list h4 {
+    margin-bottom: 1rem;
+    color: #495057;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+}
+
+.name-list {
+    min-height: 50px;
+}
+
+.level-group {
+    margin-bottom: 1rem;
+}
+
+.level-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.member-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.member-name {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    border: 1px solid #bbdefb;
+}
+
+.present-list .member-name {
+    background-color: #e8f5e8;
+    color: #2e7d2e;
+    border-color: #c8e6c9;
+}
+
+.absent-list .member-name {
+    background-color: #ffebee;
+    color: #c62828;
+    border-color: #ffcdd2;
+}
+
+.no-data {
+    color: #6c757d;
+    font-style: italic;
+    margin: 0;
+    text-align: center;
+    padding: 1rem;
+}
+
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -360,6 +432,30 @@ button:hover {
         font-size: 1.1rem;
         margin-bottom: 0.75rem;
     }
+    
+    .attendance-details {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .attendance-list {
+        padding: 0.75rem;
+    }
+    
+    .attendance-list h4 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .level-title {
+        font-size: 0.85rem;
+    }
+    
+    .member-name {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+    }
 
     .footer-container {
         grid-template-columns: 1fr;
@@ -401,6 +497,33 @@ button:hover {
     .organization-section {
         padding: 0.5rem;
         margin-bottom: 0.75rem;
+    }
+    
+    .attendance-details {
+        margin-top: 0.75rem;
+    }
+    
+    .attendance-list {
+        padding: 0.5rem;
+    }
+    
+    .attendance-list h4 {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .level-title {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .member-names {
+        gap: 0.25rem;
+    }
+    
+    .member-name {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.3rem;
     }
     
     .footer {

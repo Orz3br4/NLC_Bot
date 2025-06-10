@@ -65,6 +65,17 @@
                             <span id="sunday-total"></span>
                         </div>
                     </div>
+                    
+                    <div class="attendance-details">
+                        <div class="attendance-list">
+                            <h4>出席名單</h4>
+                            <div id="sunday-present-list" class="name-list present-list"></div>
+                        </div>
+                        <div class="attendance-list">
+                            <h4>缺席名單</h4>
+                            <div id="sunday-absent-list" class="name-list absent-list"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="report-section">
@@ -87,6 +98,17 @@
                             <span id="group-total"></span>
                         </div>
                     </div>
+                    
+                    <div class="attendance-details">
+                        <div class="attendance-list">
+                            <h4>出席名單</h4>
+                            <div id="group-present-list" class="name-list present-list"></div>
+                        </div>
+                        <div class="attendance-list">
+                            <h4>缺席名單</h4>
+                            <div id="group-absent-list" class="name-list absent-list"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="report-section">
@@ -107,6 +129,17 @@
                         <div class="stat-item">
                             <label>總出席人數：</label>
                             <span id="unique-total"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="attendance-details">
+                        <div class="attendance-list">
+                            <h4>出席名單</h4>
+                            <div id="unique-present-list" class="name-list present-list"></div>
+                        </div>
+                        <div class="attendance-list">
+                            <h4>缺席名單</h4>
+                            <div id="unique-absent-list" class="name-list absent-list"></div>
                         </div>
                     </div>
                 </div>
@@ -159,6 +192,42 @@
                 month: 'long',
                 day: 'numeric'
             });
+        }
+        
+        function updateNameList(elementId, memberList) {
+            const element = document.getElementById(elementId);
+            if (!memberList || memberList.length === 0) {
+                element.innerHTML = '<p class="no-data">無資料</p>';
+                return;
+            }
+            
+            // Group members by level
+            const grouped = {
+                '基督徒': [],
+                '慕道友': [],
+                '新朋友': []
+            };
+            
+            memberList.forEach(member => {
+                grouped[member.level].push(member);
+            });
+            
+            let html = '';
+            Object.keys(grouped).forEach(level => {
+                if (grouped[level].length > 0) {
+                    html += `<div class="level-group">
+                        <h5 class="level-title">${level} (${grouped[level].length})</h5>
+                        <div class="member-names">`;
+                    
+                    grouped[level].forEach(member => {
+                        html += `<span class="member-name">${member.name}</span>`;
+                    });
+                    
+                    html += '</div></div>';
+                }
+            });
+            
+            element.innerHTML = html;
         }        // 級聯選單事件處理
         organizationSelects.district.addEventListener('change', async () => {
             const districtId = organizationSelects.district.value;
@@ -233,6 +302,14 @@
                 document.getElementById('unique-vip').textContent = report.unique.vip_count;
                 document.getElementById('unique-new').textContent = report.unique.new_friend_count;
                 document.getElementById('unique-total').textContent = report.unique.attendees.length;
+                
+                // 更新出席和缺席名單
+                updateNameList('sunday-present-list', report.sunday_service.attendees);
+                updateNameList('sunday-absent-list', report.sunday_service.absent);
+                updateNameList('group-present-list', report.group_meeting.attendees);
+                updateNameList('group-absent-list', report.group_meeting.absent);
+                updateNameList('unique-present-list', report.unique.attendees);
+                updateNameList('unique-absent-list', report.unique.absent);
                 
             } catch (error) {
                 console.error('Error loading attendance report:', error);
