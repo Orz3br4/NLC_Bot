@@ -302,7 +302,7 @@ button:hover {
     }
 
     .nav-toggle {
-        display: block;
+        display: contents;
     }
 
     .main-content {
