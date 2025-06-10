@@ -5,27 +5,39 @@
         <button class="nav-toggle" onclick="toggleNav()">☰</button>
         <div class="nav-links" id="navLinks">
             <!-- 出席管理 -->
-            <div class="nav-group">
-                <span class="nav-group-title">出席管理</span>
-                <a href="/attendance/query" class="nav-link">出席查詢</a>
-                <a href="/attendance/report" class="nav-link">民數回報</a>
+            <div class="nav-dropdown">
+                <button class="nav-dropdown-btn" onclick="toggleDropdown('attendance')">
+                    出席管理 <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="nav-dropdown-content" id="attendance-dropdown">
+                    <a href="/attendance/query" class="nav-link">出席查詢</a>
+                    <a href="/attendance/report" class="nav-link">民數回報</a>
+                </div>
             </div>
             
             {% if request.session.get('user_id') %}
                 <!-- 使用者管理 -->
-                <div class="nav-group">
-                    <span class="nav-group-title">使用者管理</span>
-                    <a href="/user/create" class="nav-link">新增使用者</a>
-                    <a href="/user/update" class="nav-link">更新使用者</a>
-                    <a href="/user/delete" class="nav-link">刪除使用者</a>
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn" onclick="toggleDropdown('user')">
+                        使用者管理 <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="nav-dropdown-content" id="user-dropdown">
+                        <a href="/user/create" class="nav-link">新增使用者</a>
+                        <a href="/user/update" class="nav-link">更新使用者</a>
+                        <a href="/user/delete" class="nav-link">刪除使用者</a>
+                    </div>
                 </div>
                 
                 <!-- 組織管理 -->
-                <div class="nav-group">
-                    <span class="nav-group-title">組織管理</span>
-                    <a href="/organization-category/create" class="nav-link">新增組織類別</a>
-                    <a href="/organization-unit/create" class="nav-link">新增組織單位</a>
-                    <a href="/organization-units/update" class="nav-link">更新組織單位</a>
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn" onclick="toggleDropdown('organization')">
+                        組織管理 <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="nav-dropdown-content" id="organization-dropdown">
+                        <a href="/organization-category/create" class="nav-link">新增組織類別</a>
+                        <a href="/organization-unit/create" class="nav-link">新增組織單位</a>
+                        <a href="/organization-units/update" class="nav-link">更新組織單位</a>
+                    </div>
                 </div>
                 
                 <div class="user-info">
@@ -50,6 +62,36 @@ function toggleNav() {
     navLinks.classList.toggle('active');
 }
 
+function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId + '-dropdown');
+    const button = dropdown.previousElementSibling;
+    const arrow = button.querySelector('.dropdown-arrow');
+    
+    // Close other dropdowns
+    closeAllDropdowns(dropdownId);
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('active');
+    arrow.classList.toggle('rotated');
+}
+
+function closeAllDropdowns(exceptId) {
+    const dropdowns = document.querySelectorAll('.nav-dropdown-content');
+    const arrows = document.querySelectorAll('.dropdown-arrow');
+    
+    dropdowns.forEach(function(dropdown) {
+        if (!exceptId || dropdown.id !== exceptId + '-dropdown') {
+            dropdown.classList.remove('active');
+        }
+    });
+    
+    arrows.forEach(function(arrow) {
+        if (!exceptId || !arrow.closest('.nav-dropdown').querySelector('#' + exceptId + '-dropdown')) {
+            arrow.classList.remove('rotated');
+        }
+    });
+}
+
 // Close navigation when clicking outside
 document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.getElementById('navLinks');
@@ -59,9 +101,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(event) {
         const isClickInsideNav = navLinks.contains(event.target);
         const isClickOnToggle = navToggle.contains(event.target);
+        const isDropdownButton = event.target.closest('.nav-dropdown-btn');
         
         if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
             navLinks.classList.remove('active');
+            closeAllDropdowns();
+        }
+        
+        // Close dropdowns when clicking outside
+        if (!isClickInsideNav && !isDropdownButton) {
+            closeAllDropdowns();
         }
     });
     
@@ -69,9 +118,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchstart', function(event) {
         const isClickInsideNav = navLinks.contains(event.target);
         const isClickOnToggle = navToggle.contains(event.target);
+        const isDropdownButton = event.target.closest('.nav-dropdown-btn');
         
         if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
             navLinks.classList.remove('active');
+            closeAllDropdowns();
+        }
+        
+        // Close dropdowns when touching outside
+        if (!isClickInsideNav && !isDropdownButton) {
+            closeAllDropdowns();
         }
     });
     
@@ -81,6 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
                 navLinks.classList.remove('active');
+                closeAllDropdowns();
             }
         });
     });
