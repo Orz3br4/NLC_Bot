@@ -56,7 +56,75 @@
     </div>
 </nav>
 
+<style>
+/* 強制隱藏所有下拉選單 - 最高優先權 */
+.navbar .nav-links .nav-dropdown .nav-dropdown-content {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    background-color: #5a3085 !important;
+    min-width: 180px !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+    border-radius: 4px !important;
+    z-index: 1000 !important;
+    padding: 0.5rem 0 !important;
+    transform: translateY(-10px) !important;
+    transition: all 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+/* 顯示活動的下拉選單 */
+.navbar .nav-links .nav-dropdown .nav-dropdown-content.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+}
+
+/* 手機版覆蓋 */
+@media (max-width: 768px) {
+    .navbar .nav-links .nav-dropdown .nav-dropdown-content {
+        position: static !important;
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin-top: 0 !important;
+        transition: all 0.3s ease !important;
+        transform: none !important;
+    }
+    
+    .navbar .nav-links .nav-dropdown .nav-dropdown-content.active {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        max-height: 300px !important;
+        padding: 0.5rem 0 0 1rem !important;
+        margin-top: 0.5rem !important;
+    }
+}
+</style>
+
 <script>
+// 確保頁面載入時所有下拉選單都是隱藏的
+document.addEventListener('DOMContentLoaded', function() {
+    // 強制隱藏所有下拉選單
+    const allDropdowns = document.querySelectorAll('.nav-dropdown-content');
+    allDropdowns.forEach(function(dropdown) {
+        dropdown.classList.remove('active');
+        dropdown.style.display = 'none';
+    });
+});
+
 function toggleNav() {
     const navLinks = document.getElementById('navLinks');
     navLinks.classList.toggle('active');
@@ -71,8 +139,17 @@ function toggleDropdown(dropdownId) {
     closeAllDropdowns(dropdownId);
     
     // Toggle current dropdown
-    dropdown.classList.toggle('active');
-    arrow.classList.toggle('rotated');
+    const isActive = dropdown.classList.contains('active');
+    
+    if (isActive) {
+        dropdown.classList.remove('active');
+        dropdown.style.display = 'none';
+        arrow.classList.remove('rotated');
+    } else {
+        dropdown.classList.add('active');
+        dropdown.style.display = 'block';
+        arrow.classList.add('rotated');
+    }
 }
 
 function closeAllDropdowns(exceptId) {
@@ -82,6 +159,7 @@ function closeAllDropdowns(exceptId) {
     dropdowns.forEach(function(dropdown) {
         if (!exceptId || dropdown.id !== exceptId + '-dropdown') {
             dropdown.classList.remove('active');
+            dropdown.style.display = 'none';
         }
     });
     
