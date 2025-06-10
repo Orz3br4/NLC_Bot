@@ -2,8 +2,8 @@
 <nav class="navbar">
     <div class="nav-container">
         <a href="/" class="nav-brand">TYNLC管理系統</a>
-        <button class="nav-toggle">☰</button>
-        <div class="nav-links">
+        <button class="nav-toggle" onclick="toggleNav()">☰</button>
+        <div class="nav-links" id="navLinks">
             <a href="#" class="nav-link">首頁</a>
             <a href="#" class="nav-link">關於我們</a>
             <a href="#" class="nav-link">註冊</a>
@@ -11,3 +11,10 @@
         </div>
     </div>
 </nav>
+
+<script>
+function toggleNav() {
+    const navLinks = document.getElementById('navLinks');
+    navLinks.classList.toggle('active');
+}
+</script>
