@@ -54,8 +54,11 @@ body {
     background: none;
     border: none;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    width: auto;
 }
 
 /* 主要內容區域樣式 */
@@ -98,6 +101,16 @@ body {
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-group input[type="date"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: inherit;
 }
 
 .error {
@@ -198,6 +211,7 @@ input, select {
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 
 button {
@@ -317,7 +331,7 @@ button:hover {
         font-size: 16px;
     }
     
-    button {
+    button:not(.nav-toggle) {
         padding: 1rem;
         font-size: 16px;
     }
@@ -365,6 +379,11 @@ button:hover {
     
     .nav-brand {
         font-size: 1.25rem;
+    }
+    
+    .nav-toggle {
+        font-size: 1rem;
+        padding: 0.25rem;
     }
     
     .main-content {
