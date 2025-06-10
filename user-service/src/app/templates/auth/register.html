@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="form-container auth-container">
+            <h1 style="margin-bottom: 2rem; text-align: center;">{{title}}</h1>
+            
+            {% if error %}
+                <div class="error-message">
+                    {{ error }}
+                </div>
+            {% endif %}
+            
+            <form id="registerForm" method="POST" action="/register">
+                <div class="form-group">
+                    <label for="name" class="required">姓名</label>
+                    <input type="text" id="name" name="name" required>
+                    <div class="error">請輸入真實姓名</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="username" class="required">使用者名稱</label>
+                    <input type="text" id="username" name="username" required minlength="3">
+                    <div class="error">請輸入使用者名稱（至少3個字元）</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="required">密碼</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                    <div class="error">請輸入密碼（至少6個字元）</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" name="email">
+                    <div class="error">請輸入有效的電子郵件地址</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="level" class="required">靈程</label>
+                    <select id="level" name="level" required>
+                        <option value="" disabled selected>請選擇靈程</option>
+                        <option value="基督徒">基督徒</option>
+                        <option value="慕道友">慕道友</option>
+                        <option value="新朋友">新朋友</option>
+                    </select>
+                    <div class="error">請選擇靈程</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role" class="required">教會職分</label>
+                    <select id="role" name="role" required>
+                        <option value="" disabled selected>請選擇職分</option>
+                        <option value="會友">會友</option>
+                        <option value="小家長">小家長</option>
+                        <option value="小組長">小組長</option>
+                        <option value="區長">區長</option>
+                        <option value="牧師">牧師</option>
+                        <option value="傳道">傳道</option>
+                    </select>
+                    <div class="error">請選擇教會職分</div>
+                </div>
+
+                <button type="submit">註冊</button>
+            </form>
+            
+            <div class="auth-links">
+                <p>已有帳號？ <a href="/login">立即登入</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById('registerForm');
+        const inputs = form.querySelectorAll('input, select');
+
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                validateField(input);
+            });
+
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (field.validity.valid) {
+                errorElement.style.display = 'none';
+                field.classList.remove('invalid');
+            } else {
+                errorElement.style.display = 'block';
+                field.classList.add('invalid');
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                form.reportValidity();
+            }
+        });
+    </script>
+{% endblock %}

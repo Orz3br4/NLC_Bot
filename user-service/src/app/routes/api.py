@@ -1,14 +1,15 @@
 from datetime import date, timedelta
 import logging
 import os
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, ProgrammingError, OperationalError
 from typing import Dict, List, Optional
-from .. import schemas, models
+from .. import schemas, models, auth
 from ..database import get_db
 from app.schemas import AttendanceStats, PaginatedResponse, WeeklyAttendanceReport
 
@@ -19,14 +20,183 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirna
 
 logger = logging.getLogger(__name__)
 
+# ========== Home route ==========
+@router.get("/")
+async def home(request: Request, db: Session = Depends(get_db)):
+    """Home page"""
+    current_user = await auth.get_current_user_from_session(request, db)
+    return templates.TemplateResponse(
+        "home.html",
+        {
+            "request": request,
+            "title": "TYNLC管理系統",
+            "current_user": current_user
+        }
+    )
+
+# ========== Authentication routes ==========
+@router.get("/login")
+async def get_login_form(request: Request):
+    """Get the login form template"""
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {
+            "request": request,
+            "title": "登入系統"
+        }
+    )
+
+@router.post("/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Handle user login"""
+    try:
+        user = auth.authenticate_user(db, username, password)
+        if not user:
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "title": "登入系統",
+                    "error": "帳號或密碼錯誤"
+                }
+            )
+        
+        if not user.is_active:
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "title": "登入系統", 
+                    "error": "帳號已被停用"
+                }
+            )
+        
+        # Store user session
+        request.session["user_id"] = user.id
+        request.session["user_name"] = user.name
+        
+        # Redirect to dashboard or home page
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {
+                "request": request,
+                "title": "登入系統",
+                "error": "登入時發生錯誤，請稍後再試"
+            }
+        )
+
+@router.post("/logout")
+async def logout(request: Request):
+    """Handle user logout"""
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+@router.get("/register")
+async def get_register_form(request: Request):
+    """Get the registration form template"""
+    return templates.TemplateResponse(
+        "auth/register.html",
+        {
+            "request": request,
+            "title": "註冊帳號"
+        }
+    )
+
+@router.post("/register")
+async def register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    name: str = Form(...),
+    email: str = Form(None),
+    level: str = Form(...),
+    role: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Handle user registration"""
+    try:
+        # Check if username already exists
+        existing_user = db.query(models.User).filter(models.User.username == username).first()
+        if existing_user:
+            return templates.TemplateResponse(
+                "auth/register.html",
+                {
+                    "request": request,
+                    "title": "註冊帳號",
+                    "error": "使用者名稱已存在"
+                }
+            )
+        
+        # Check if email already exists (if provided)
+        if email:
+            existing_email = db.query(models.User).filter(models.User.email == email).first()
+            if existing_email:
+                return templates.TemplateResponse(
+                    "auth/register.html",
+                    {
+                        "request": request,
+                        "title": "註冊帳號",
+                        "error": "電子郵件已被使用"
+                    }
+                )
+        
+        # Create new user
+        hashed_password = auth.get_password_hash(password)
+        user_data = {
+            "name": name,
+            "username": username,
+            "hashed_password": hashed_password,
+            "level": level,
+            "role": role,
+            "is_active": True
+        }
+        
+        if email:
+            user_data["email"] = email
+            
+        db_user = models.User(**user_data)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        # Auto login after registration
+        request.session["user_id"] = db_user.id
+        request.session["user_name"] = db_user.name
+        
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Registration error: {str(e)}")
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {
+                "request": request,
+                "title": "註冊帳號",
+                "error": "註冊時發生錯誤，請稍後再試"
+            }
+        )
+
 # ========== User routes ==========
 @router.get("/user/create")
-async def get_user_create_form(request: Request):
+async def get_user_create_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     """
     Get the form template for creating a new user
     
     Args:
         request: The FastAPI request object
+        current_user: The authenticated user
         
     Returns:
         TemplateResponse: The rendered create user form template
@@ -35,7 +205,8 @@ async def get_user_create_form(request: Request):
         "user/create.html",
         {
             "request": request, 
-            "title": "新增使用者"
+            "title": "新增使用者",
+            "current_user": current_user
         }
     )
 
@@ -75,22 +246,30 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/user/update")
-async def get_user_update_form(request: Request):
+async def get_user_update_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     return templates.TemplateResponse(
         "user/update.html",
         {
             "request": request,
-            "title": "更新使用者資料"
+            "title": "更新使用者資料",
+            "current_user": current_user
         }
     )
 
 @router.get("/user/delete")
-async def get_user_delete_form(request: Request):
+async def get_user_delete_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     return templates.TemplateResponse(
         "user/delete.html",
         {
             "request": request,
-            "title": "刪除使用者"
+            "title": "刪除使用者",
+            "current_user": current_user
         }
     )
 
@@ -215,12 +394,16 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 # ========== Organization Category routes ==========
 @router.get("/organization-category/create")
-async def get_create_organization_category_form(request: Request):
+async def get_create_organization_category_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     return templates.TemplateResponse(
         "organization_category/create.html",
         {
             "request": request,
-            "title": "新增組織類別"
+            "title": "新增組織類別",
+            "current_user": current_user
         }
     )
 
@@ -281,12 +464,16 @@ async def read_organization_categories(
 
 # Organization Unit routes
 @router.get("/organization-unit/create")
-async def get_create_organization_category_form(request: Request):
+async def get_create_organization_category_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     return templates.TemplateResponse(
         "organization_unit/create.html",
         {
             "request": request,
-            "title": "新增組織單位"
+            "title": "新增組織單位",
+            "current_user": current_user
         }
     )
 
@@ -318,12 +505,16 @@ def read_organization_units(skip: int = 0, limit: int = 100, db: Session = Depen
 
 # This API must be placed here, or it will never be accessible
 @router.get("/organization-units/update")
-async def get_organization_unit_update_form(request: Request):
+async def get_organization_unit_update_form(
+    request: Request, 
+    current_user: models.User = Depends(auth.require_auth)
+):
     return templates.TemplateResponse(
         "organization_unit/update.html",
         {
             "request": request,
-            "title": "更新組織單位資料"
+            "title": "更新組織單位資料",
+            "current_user": current_user
         }
     )
 

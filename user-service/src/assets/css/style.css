@@ -157,6 +157,205 @@ body {
     padding: 1rem;
 }
 
+/* Authentication styles */
+.auth-container {
+    max-width: 400px;
+    margin: 2rem auto;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.auth-links a {
+    color: #4e2774;
+    text-decoration: none;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+.invalid {
+    border-color: #dc3545 !important;
+}
+
+/* User info display */
+.user-info {
+    color: white;
+    font-size: 0.9rem;
+}
+
+.logout-btn {
+    background: none;
+    border: 1px solid white;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: 1rem;
+}
+
+.logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Home page styles */
+.home-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.welcome-section {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.feature-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.feature-card h3 {
+    color: #4e2774;
+    margin-bottom: 1rem;
+}
+
+.feature-link {
+    display: inline-block;
+    background-color: #4e2774;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    margin-top: 1rem;
+    transition: background-color 0.2s;
+}
+
+.feature-link:hover {
+    background-color: #7039a7;
+}
+
+.guest-section {
+    text-align: center;
+}
+
+.feature-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.feature-item {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #4e2774;
+}
+
+.feature-item h3 {
+    color: #4e2774;
+    margin-bottom: 0.5rem;
+}
+
+.public-features {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #e8f5e8;
+    border-radius: 8px;
+}
+
+.public-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.public-link {
+    background-color: #28a745;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.public-link:hover {
+    background-color: #218838;
+}
+
+.auth-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.auth-btn {
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.login-btn {
+    background-color: #4e2774;
+    color: white;
+}
+
+.login-btn:hover {
+    background-color: #7039a7;
+}
+
+.register-btn {
+    background-color: transparent;
+    color: #4e2774;
+    border: 2px solid #4e2774;
+}
+
+.register-btn:hover {
+    background-color: #4e2774;
+    color: white;
+}
+
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -376,6 +575,18 @@ button:hover {
     .nav-toggle {
         display: contents;
     }
+    
+    .user-info {
+        padding: 0.5rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 0.5rem;
+    }
+    
+    .logout-btn {
+        display: block;
+        margin: 0.5rem 0 0 0;
+        width: auto;
+    }
 
     .main-content {
         padding: 1rem;
@@ -455,6 +666,29 @@ button:hover {
     .member-name {
         font-size: 0.8rem;
         padding: 0.2rem 0.4rem;
+    }
+    
+    .home-container {
+        padding: 1rem;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .feature-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .public-links {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .auth-actions {
+        flex-direction: column;
+        align-items: center;
     }
 
     .footer-container {

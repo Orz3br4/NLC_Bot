@@ -4,10 +4,21 @@
         <a href="/" class="nav-brand">TYNLC管理系統</a>
         <button class="nav-toggle" onclick="toggleNav()">☰</button>
         <div class="nav-links" id="navLinks">
-            <a href="#" class="nav-link">首頁</a>
-            <a href="#" class="nav-link">關於我們</a>
-            <a href="#" class="nav-link">註冊</a>
-            <a href="#" class="nav-link">登入</a>
+            <a href="/attendance/query" class="nav-link">出席查詢</a>
+            <a href="/attendance/report" class="nav-link">民數回報</a>
+            {% if request.session.get('user_id') %}
+                <a href="/user/create" class="nav-link">新增使用者</a>
+                <a href="/organization-unit/create" class="nav-link">新增組織</a>
+                <div class="user-info">
+                    歡迎，{{ request.session.get('user_name') }}
+                    <form method="POST" action="/logout" style="display: inline;">
+                        <button type="submit" class="logout-btn">登出</button>
+                    </form>
+                </div>
+            {% else %}
+                <a href="/login" class="nav-link">登入</a>
+                <a href="/register" class="nav-link">註冊</a>
+            {% endif %}
         </div>
     </div>
 </nav>

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 import os
 from app.routes import api
 from app.models import Base
@@ -10,6 +11,9 @@ from app.database import engine
 app = FastAPI(title="User Service API")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Add session middleware
+app.add_middleware(SessionMiddleware, secret_key="your-secret-key-change-in-production")
 
 # CORS 設置
 app.add_middleware(

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main class="main-content">
+        <div class="home-container">
+            <h1 style="text-align: center; margin-bottom: 2rem;">歡迎使用 TYNLC 管理系統</h1>
+            
+            {% if current_user %}
+                <div class="welcome-section">
+                    <h2>歡迎回來，{{ current_user.name }}！</h2>
+                    <p>您可以使用以下功能：</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>使用者管理</h3>
+                        <p>新增、修改、刪除使用者資料</p>
+                        <a href="/user/create" class="feature-link">新增使用者</a>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>組織管理</h3>
+                        <p>管理教會組織架構</p>
+                        <a href="/organization-unit/create" class="feature-link">新增組織單位</a>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>出席統計</h3>
+                        <p>查看聚會出席報告</p>
+                        <a href="/attendance/query" class="feature-link">查看報告</a>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>民數回報</h3>
+                        <p>回報每週出席情況</p>
+                        <a href="/attendance/report" class="feature-link">回報民數</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="guest-section">
+                    <h2>系統功能</h2>
+                    <p>本系統提供以下功能（需要登入）：</p>
+                    
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <h3>✓ 使用者管理</h3>
+                            <p>管理教會成員資料</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>✓ 組織架構管理</h3>
+                            <p>維護教會組織結構</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>✓ 出席統計系統</h3>
+                            <p>追蹤聚會出席情況</p>
+                        </div>
+                    </div>
+                    
+                    <div class="public-features">
+                        <h3>公開功能（無需登入）：</h3>
+                        <div class="public-links">
+                            <a href="/attendance/query" class="public-link">查看出席報告</a>
+                            <a href="/attendance/report" class="public-link">民數回報</a>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-actions">
+                        <a href="/login" class="auth-btn login-btn">登入系統</a>
+                        <a href="/register" class="auth-btn register-btn">註冊帳號</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+{% endblock %}

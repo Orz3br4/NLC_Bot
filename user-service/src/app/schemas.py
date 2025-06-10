@@ -47,11 +47,43 @@ class UserUpdate(BaseModel):
     mobile_number: Optional[str] = Field(None, pattern=r'^09\d{8}$')
     level: Optional[UserLevel] = None
     role: Optional[UserRole] = None
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    password: Optional[str] = Field(None, min_length=6)
+    is_active: Optional[bool] = None
 
 class UserInDB(UserBase):
     id: int
+    username: Optional[str] = None
+    is_active: bool = True
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# Authentication schemas
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserRegister(UserBase):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class CurrentUser(BaseModel):
+    id: int
+    name: str
+    username: Optional[str] = None
+    level: UserLevel
+    role: UserRole
+    is_active: bool = True
 
     class Config:
         from_attributes = True
