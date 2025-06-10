@@ -28,4 +28,40 @@ function toggleNav() {
     const navLinks = document.getElementById('navLinks');
     navLinks.classList.toggle('active');
 }
+
+// Close navigation when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.getElementById('navLinks');
+    const navToggle = document.querySelector('.nav-toggle');
+    
+    // Close nav when clicking outside
+    document.addEventListener('click', function(event) {
+        const isClickInsideNav = navLinks.contains(event.target);
+        const isClickOnToggle = navToggle.contains(event.target);
+        
+        if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
+            navLinks.classList.remove('active');
+        }
+    });
+    
+    // Close nav when touching outside (for touch devices)
+    document.addEventListener('touchstart', function(event) {
+        const isClickInsideNav = navLinks.contains(event.target);
+        const isClickOnToggle = navToggle.contains(event.target);
+        
+        if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
+            navLinks.classList.remove('active');
+        }
+    });
+    
+    // Close nav when clicking on nav links (mobile)
+    const navLinksElements = navLinks.querySelectorAll('.nav-link');
+    navLinksElements.forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                navLinks.classList.remove('active');
+            }
+        });
+    });
+});
 </script>
