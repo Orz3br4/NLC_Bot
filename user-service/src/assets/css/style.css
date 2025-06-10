@@ -95,8 +95,8 @@ body {
 }
 
 .nav-dropdown-content {
-    /* 強制隱藏下拉選單 */
-    display: none;
+    /* 強制隱藏下拉選單 - 使用 !important 確保套用 */
+    display: none !important;
     position: absolute;
     top: 100%;
     left: 0;
@@ -111,9 +111,18 @@ body {
 }
 
 .nav-dropdown-content.active {
-    /* 顯示下拉選單 */
-    display: block;
+    /* 顯示下拉選單 - 使用 !important 確保套用 */
+    display: block !important;
     transform: translateY(0);
+}
+
+/* 更強的選擇器確保樣式套用 */
+.navbar .nav-dropdown-content {
+    display: none !important;
+}
+
+.navbar .nav-dropdown-content.active {
+    display: block !important;
 }
 
 .nav-dropdown-content .nav-link {
@@ -134,7 +143,7 @@ body {
 @media (max-width: 768px) {
     .nav-dropdown-content {
         position: static;
-        display: none; /* 確保手機版也是隱藏的 */
+        display: none !important; /* 確保手機版也是隱藏的 */
         max-height: 0;
         overflow: hidden;
         background-color: transparent;
@@ -147,10 +156,19 @@ body {
     }
     
     .nav-dropdown-content.active {
-        display: block; /* 手機版顯示 */
+        display: block !important; /* 手機版顯示 */
         max-height: 300px;
         padding: 0.5rem 0 0 1rem;
         margin-top: 0.5rem;
+    }
+    
+    /* 更強的手機版選擇器 */
+    .navbar .nav-dropdown-content {
+        display: none !important;
+    }
+    
+    .navbar .nav-dropdown-content.active {
+        display: block !important;
     }
 }
 
