@@ -4,11 +4,30 @@
         <a href="/" class="nav-brand">TYNLC管理系統</a>
         <button class="nav-toggle" onclick="toggleNav()">☰</button>
         <div class="nav-links" id="navLinks">
-            <a href="/attendance/query" class="nav-link">出席查詢</a>
-            <a href="/attendance/report" class="nav-link">民數回報</a>
+            <!-- 出席管理 -->
+            <div class="nav-group">
+                <span class="nav-group-title">出席管理</span>
+                <a href="/attendance/query" class="nav-link">出席查詢</a>
+                <a href="/attendance/report" class="nav-link">民數回報</a>
+            </div>
+            
             {% if request.session.get('user_id') %}
-                <a href="/user/create" class="nav-link">新增使用者</a>
-                <a href="/organization-unit/create" class="nav-link">新增組織</a>
+                <!-- 使用者管理 -->
+                <div class="nav-group">
+                    <span class="nav-group-title">使用者管理</span>
+                    <a href="/user/create" class="nav-link">新增使用者</a>
+                    <a href="/user/update" class="nav-link">更新使用者</a>
+                    <a href="/user/delete" class="nav-link">刪除使用者</a>
+                </div>
+                
+                <!-- 組織管理 -->
+                <div class="nav-group">
+                    <span class="nav-group-title">組織管理</span>
+                    <a href="/organization-category/create" class="nav-link">新增組織類別</a>
+                    <a href="/organization-unit/create" class="nav-link">新增組織單位</a>
+                    <a href="/organization-units/update" class="nav-link">更新組織單位</a>
+                </div>
+                
                 <div class="user-info">
                     歡迎，{{ request.session.get('user_name') }}
                     <form method="POST" action="/logout" style="display: inline;">
@@ -16,8 +35,10 @@
                     </form>
                 </div>
             {% else %}
-                <a href="/login" class="nav-link">登入</a>
-                <a href="/register" class="nav-link">註冊</a>
+                <div class="nav-group">
+                    <a href="/login" class="nav-link">登入</a>
+                    <a href="/register" class="nav-link">註冊</a>
+                </div>
             {% endif %}
         </div>
     </div>

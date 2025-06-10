@@ -61,6 +61,49 @@ body {
     width: auto;
 }
 
+/* Navigation groups */
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-group-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #b3a5d1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 0.25rem;
+}
+
+.nav-group .nav-link {
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
+}
+
+/* Desktop navigation groups */
+@media (min-width: 769px) {
+    .nav-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .nav-group-title {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        margin-right: 0.5rem;
+    }
+    
+    .nav-group .nav-link {
+        margin-left: 0;
+    }
+}
+
 /* 主要內容區域樣式 */
 .main-content {
     flex: 1;
@@ -566,6 +609,7 @@ button:hover {
         padding: 1rem;
         flex-direction: column;
         z-index: 1000;
+        gap: 1rem;
     }
 
     .nav-links.active {
@@ -574,6 +618,19 @@ button:hover {
 
     .nav-toggle {
         display: contents;
+    }
+    
+    /* Mobile navigation groups */
+    .nav-group {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .nav-group:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
     }
     
     .user-info {
