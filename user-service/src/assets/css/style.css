@@ -95,8 +95,8 @@ body {
 }
 
 .nav-dropdown-content {
-    visibility: hidden;
-    opacity: 0;
+    /* 強制隱藏下拉選單 */
+    display: none;
     position: absolute;
     top: 100%;
     left: 0;
@@ -108,14 +108,12 @@ body {
     padding: 0.5rem 0;
     transform: translateY(-10px);
     transition: all 0.3s ease;
-    pointer-events: none;
 }
 
 .nav-dropdown-content.active {
-    visibility: visible;
-    opacity: 1;
+    /* 顯示下拉選單 */
+    display: block;
     transform: translateY(0);
-    pointer-events: auto;
 }
 
 .nav-dropdown-content .nav-link {
@@ -130,6 +128,30 @@ body {
 .nav-dropdown-content .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #3498db;
+}
+
+/* Mobile navigation dropdowns - 手機版本也需要修正 */
+@media (max-width: 768px) {
+    .nav-dropdown-content {
+        position: static;
+        display: none; /* 確保手機版也是隱藏的 */
+        max-height: 0;
+        overflow: hidden;
+        background-color: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        margin-top: 0;
+        transition: all 0.3s ease;
+        transform: none;
+    }
+    
+    .nav-dropdown-content.active {
+        display: block; /* 手機版顯示 */
+        max-height: 300px;
+        padding: 0.5rem 0 0 1rem;
+        margin-top: 0.5rem;
+    }
 }
 
 /* Navigation groups (for non-dropdown items like login/register) */
