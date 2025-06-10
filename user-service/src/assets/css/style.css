@@ -95,7 +95,7 @@ body {
 }
 
 .nav-dropdown-content {
-    display: none;
+    display: none !important;
     position: absolute;
     top: 100%;
     left: 0;
@@ -108,7 +108,7 @@ body {
 }
 
 .nav-dropdown-content.active {
-    display: block;
+    display: block !important;
 }
 
 .nav-dropdown-content .nav-link {
@@ -670,7 +670,7 @@ button:hover {
     
     .nav-dropdown-content {
         position: static;
-        display: none;
+        display: none !important;
         background-color: transparent;
         box-shadow: none;
         border-radius: 0;
@@ -679,7 +679,7 @@ button:hover {
     }
     
     .nav-dropdown-content.active {
-        display: block;
+        display: block !important;
     }
     
     .nav-dropdown-content .nav-link {
