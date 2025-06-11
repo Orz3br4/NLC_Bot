@@ -41,7 +41,9 @@
                 </div>
                 
                 <div class="user-info">
-                    歡迎，{{ request.session.get('user_name') }}
+                    <p>
+                        歡迎，{{ request.session.get('user_name') }}
+                    </p>
                     <form method="POST" action="/logout" style="display: inline;">
                         <button type="submit" class="logout-btn">登出</button>
                     </form>
