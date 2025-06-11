@@ -312,6 +312,9 @@ body {
 
 /* User info display */
 .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     color: white;
     font-size: 0.9rem;
 }
