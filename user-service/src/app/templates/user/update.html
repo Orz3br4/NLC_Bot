@@ -159,15 +159,18 @@
             });
         }
 
-        function resetSelect(select) {
+        function resetSelect(select, keepEnabled = false) {
             select.innerHTML = '<option value="" disabled selected>請選擇</option>';
-            select.disabled = true;
+            if (!keepEnabled) {
+                select.disabled = true;
+            }
         }        // 初始化載入小區資料
         async function loadDistricts() {
             try {
                 const response = await fetch(`/organization-units/by-category/${categoryMap.district}`);
                 const districts = await response.json();
                 populateSelect(organizationSelects.district, districts);
+                organizationSelects.district.disabled = false;
             } catch (error) {
                 console.error('Error loading districts:', error);
             }
@@ -211,10 +214,9 @@
                 const response = await fetch(`/users/${userId}/organization-units`);
                 const units = await response.json();
                 
-                // 重置所有選擇
-                for (let select of Object.values(organizationSelects)) {
-                    resetSelect(select);
-                }
+                // 重置小組和EKK選擇，但保持小區啟用
+                resetSelect(organizationSelects.group);
+                resetSelect(organizationSelects.ekk);
 
                 if (units.length > 0) {
                     // 找到最底層的單位（category_id 最大的）
@@ -230,12 +232,10 @@
                     const unitsByCategory = hierarchy.reduce((acc, unit) => {
                         acc[unit.category_id] = unit;
                         return acc;
-                    }, {});                    // 逐級載入組織資訊
-                    await loadDistricts();
+                    }, {});                    // 確保小區選項已載入且可選擇
                     const districtUnit = unitsByCategory[categoryMap.district];
                     if (districtUnit) {
                         organizationSelects.district.value = districtUnit.id;
-                        organizationSelects.district.disabled = false;
 
                         const groupUnit = unitsByCategory[categoryMap.group];
                         if (groupUnit) {
@@ -266,7 +266,8 @@
             try {
                 // 載入使用者資料
                 const response = await fetch('/users/');
-                const users = await response.json();                // 初始化使用者搜尋
+                const users = await response.json();
+                
                 // 先載入小區資料
                 await loadDistricts();
 
